@@ -58,7 +58,9 @@ module.exports = [
           { id: 'p1', label: 'Write the internal weather report — what is present right now?' }
         ]
       },
-      { type: 'info', content: 'Step 2 — Ask: What is aware of all this? What is your sense of the spaciousness that holds all these experiences?\n\nStep 3 — Rest as Sky: If possible, go outside and watch the clouds for 5–10 minutes. As you watch, notice: the sky holds everything. The weather changes. The sky is just, there.\n\nStep 4 — Take a contemplative 3–5 minutes to rest as the spaciousness that holds everything. Not trying to change your weather. Just being the space in which it appears.' },
+      { type: 'info', content: 'Step 2 — Ask: What is aware of all this? What is your sense of the spaciousness that holds all these experiences?\n\nStep 3 — Rest as Sky: If possible, go outside and watch the clouds for 5–10 minutes. As you watch, notice: the sky holds everything. The weather changes. The sky is just, there. Or if you\'re indoors, watch the video below.' },
+      { type: 'youtube', url: 'https://www.youtube.com/watch?v=CLqBMCRbPbk', label: 'Watch: Clouds & Sky' },
+      { type: 'info', content: 'Step 4 — Take a contemplative 3–5 minutes to rest as the spaciousness that holds everything. Not trying to change your weather. Just being the space in which it appears.' },
       { type: 'questions', questions: [
         { id: 'p2', label: 'What did you notice during this rest? (thoughts, feelings, sensations)' }
       ]},
@@ -84,8 +86,9 @@ module.exports = [
         { id: 'p2', label: 'Now think of yourself struggling similarly. What do you actually say to yourself?' },
         { id: 'p3', label: 'What might make it easier to be compassionate toward others than toward yourself?' }
       ]},
+      { type: 'youtube', url: 'https://www.youtube.com/watch?v=11U0h0DPu7k', label: 'Kristin Neff — The Space Between Self-Esteem and Self-Compassion' },
       { type: 'questions', title: 'After Watching the Video',
-        intro: 'Watch the Kristin Neff 4-minute video on self-compassion, then return here.',
+        intro: 'Watch the Kristin Neff video above on self-compassion, then return here.',
         questions: [
           { id: 'v1', label: 'What resonated?' },
           { id: 'v2', label: 'What challenged you?' }
@@ -310,6 +313,7 @@ module.exports = [
           { id: 'aff', label: 'What do you notice?' }
         ]
       },
+      { type: 'link', url: 'https://www.davidwhyte.com/english-poem/everything-is-waiting-for-you/', label: 'David Whyte — Everything Is Waiting for You', icon: '📖' },
       { type: 'info', title: 'Transition', content: 'You\'ve completed Section 1. You\'ve gathered your resources and tended to your cup.\n\nSection 2 awaits: you\'ll begin to explore who shows up when you show up—the inner voices that have been shaping your life from behind the scenes. You have everything you need to meet them with compassion and curiosity.\n\nRest well. You are ready.' }
     ]
   },
@@ -613,7 +617,8 @@ module.exports = [
       { type: 'questions', title: 'After the Meditation', questions: [
         { id: 'med1', label: 'What happened as you widened your attention?' }
       ]},
-      { type: 'info', title: 'Listen', content: 'Spend a few minutes with a piece of music where many voices come together. You might try Gustavo Dudamel conducting Beethoven\'s Fifth Symphony, or any music that stirs a sense of complexity resolving into coherence.' },
+      { type: 'info', title: 'Listen', content: 'Spend a few minutes with a piece of music where many voices come together. You might try Gustavo Dudamel conducting Beethoven\'s Fifth Symphony below, or any music that stirs a sense of complexity resolving into coherence.' },
+      { type: 'youtube', url: 'https://www.youtube.com/watch?v=_4IRMYuE1hI', label: 'Gustavo Dudamel — Beethoven\'s 5th Symphony' },
       { type: 'questions', questions: [
         { id: 'music', label: 'What occurred for you while listening?' }
       ]},

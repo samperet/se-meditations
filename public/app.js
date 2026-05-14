@@ -29,6 +29,12 @@ async function api(method, path, body) {
 // ─── Init ─────────────────────────────────────────────────────────────────────
 
 window.addEventListener('DOMContentLoaded', () => {
+  // Direct link to register: /?register or ?register=1
+  if (new URLSearchParams(location.search).has('register')) {
+    document.getElementById('auth-screen').style.display = 'flex';
+    showView('register');
+    return;
+  }
   if (token && currentUser) {
     showApp();
   } else {
@@ -360,7 +366,37 @@ function renderLesson(lesson, responses) {
   initAudio();
 }
 
+function youtubeId(url) {
+  const m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&?/\s]+)/);
+  return m ? m[1] : null;
+}
+
 function renderBlock(block, blockIndex, lessonId, responses) {
+  if (block.type === 'youtube') {
+    const vid = youtubeId(block.url);
+    if (!vid) return '';
+    return `
+      <div class="block-media">
+        ${block.label ? `<div class="block-title">${escHtml(block.label)}</div>` : ''}
+        <div class="youtube-wrap">
+          <iframe src="https://www.youtube-nocookie.com/embed/${vid}?rel=0"
+            frameborder="0" loading="lazy" allowfullscreen
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture">
+          </iframe>
+        </div>
+      </div>`;
+  }
+
+  if (block.type === 'link') {
+    return `
+      <div class="block-link">
+        <a href="${escHtml(block.url)}" target="_blank" rel="noopener noreferrer" class="lesson-link-btn">
+          <span class="lesson-link-icon">${block.icon || '↗'}</span>
+          ${escHtml(block.label)}
+        </a>
+      </div>`;
+  }
+
   if (block.type === 'info') {
     return `
       <div class="block-info">
@@ -583,7 +619,8 @@ function isInstallBannerDismissed() {
 }
 
 function renderInstallBanner() {
-  if (isStandalone() || isInstallBannerDismissed()) return '';
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  if (!isMobile || isStandalone() || isInstallBannerDismissed()) return '';
   return `
     <div class="install-banner" onclick="showInstallInstructions()">
       <img src="/apple-touch-icon.png" alt="" class="install-banner-icon">

@@ -263,7 +263,7 @@ function renderLessonCard(lesson) {
       <div class="lesson-number">${lesson.completed ? checkSvg() : lesson.lessonNumber}</div>
       <div class="lesson-info">
         <h4>${lesson.title}</h4>
-        <span class="lesson-tag">Lesson ${lesson.lessonNumber}</span>
+        <span class="lesson-tag">Section ${lesson.sectionId} — Lesson ${lesson.lessonNumber}</span>
       </div>
       <div class="lesson-chevron">${chevronSvg()}</div>
     </div>
@@ -300,7 +300,7 @@ async function loadLesson(id) {
 
 function renderLesson(lesson, responses) {
   const isCompleted = allLessons.find(l => l.id === lesson.id)?.completed;
-  const lessonLabel = lesson.isCompanion ? lesson.title : `Lesson ${lesson.lessonNumber}`;
+  const lessonLabel = lesson.isCompanion ? lesson.title : `Section ${lesson.sectionId} — Lesson ${lesson.lessonNumber}`;
   setHeader(lesson.sectionTitle, true);
 
   const audioUrl = `/api/audio/${encodeURIComponent(lesson.audio.section)}/${lesson.audio.folder}/${encodeURIComponent(lesson.audio.file)}?t=${encodeURIComponent(token)}`;

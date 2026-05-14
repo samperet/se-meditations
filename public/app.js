@@ -231,6 +231,7 @@ function renderHome() {
 
     ${renderSectionGroup(1, 'Section 1: Preparing for the Journey', s1Lessons, s1Companions)}
     ${renderSectionGroup(2, 'Section 2: Meeting the Voices Within', s2Lessons, s2Companions)}
+    ${renderInstallBanner()}
     <div style="height:32px"></div>
   `;
   setContent(html);
@@ -568,6 +569,94 @@ function showToast(msg, duration = 2500) {
   el.textContent = msg;
   el.classList.add('show');
   setTimeout(() => el.classList.remove('show'), duration);
+}
+
+// ─── Install Banner ───────────────────────────────────────────────────────────
+
+function isStandalone() {
+  return window.navigator.standalone === true ||
+    window.matchMedia('(display-mode: standalone)').matches;
+}
+
+function isInstallBannerDismissed() {
+  return localStorage.getItem('se_install_dismissed') === '1';
+}
+
+function renderInstallBanner() {
+  if (isStandalone() || isInstallBannerDismissed()) return '';
+  return `
+    <div class="install-banner" onclick="showInstallInstructions()">
+      <img src="/apple-touch-icon.png" alt="" class="install-banner-icon">
+      <div class="install-banner-text">
+        <h1 class="install-banner-h1">Add to your Home Screen</h1>
+        <h3 class="install-banner-h3">Access Sacred Engagement with one tap</h3>
+      </div>
+      <button class="install-banner-dismiss" onclick="event.stopPropagation(); dismissInstallBanner()" aria-label="Dismiss">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+  `;
+}
+
+function dismissInstallBanner() {
+  localStorage.setItem('se_install_dismissed', '1');
+  const banner = document.querySelector('.install-banner');
+  if (banner) { banner.style.opacity = '0'; setTimeout(() => banner.remove(), 300); }
+}
+
+function getPlatform() {
+  const ua = navigator.userAgent;
+  if (/iPad|iPhone|iPod/.test(ua) && !window.MSStream) return 'ios';
+  if (/Android/.test(ua)) return 'android';
+  return 'desktop';
+}
+
+function showInstallInstructions() {
+  const platform = getPlatform();
+  const steps = {
+    ios: [
+      { icon: '⬆️', text: 'Tap the <strong>Share</strong> button at the bottom of Safari' },
+      { icon: '📲', text: 'Scroll down and tap <strong>"Add to Home Screen"</strong>' },
+      { icon: '✅', text: 'Tap <strong>Add</strong> in the top-right corner' },
+    ],
+    android: [
+      { icon: '⋮', text: 'Tap the <strong>three-dot menu</strong> in Chrome\'s top-right corner' },
+      { icon: '📲', text: 'Tap <strong>"Add to Home Screen"</strong> or <strong>"Install app"</strong>' },
+      { icon: '✅', text: 'Tap <strong>Add</strong> to confirm' },
+    ],
+    desktop: [
+      { icon: '🌐', text: 'Open this page in <strong>Chrome</strong> or <strong>Edge</strong>' },
+      { icon: '📲', text: 'Click the <strong>install icon</strong> (⊕) in the address bar' },
+      { icon: '✅', text: 'Click <strong>Install</strong> to add it to your desktop' },
+    ],
+  };
+
+  const platformLabel = { ios: 'iPhone / iPad', android: 'Android', desktop: 'Desktop' }[platform];
+  const stepsHtml = steps[platform].map(s => `
+    <div class="install-step">
+      <span class="install-step-icon">${s.icon}</span>
+      <span class="install-step-text">${s.text}</span>
+    </div>
+  `).join('');
+
+  const modal = document.createElement('div');
+  modal.className = 'install-modal-overlay';
+  modal.innerHTML = `
+    <div class="install-modal" onclick="event.stopPropagation()">
+      <div class="install-modal-header">
+        <img src="/apple-touch-icon.png" alt="" class="install-modal-icon">
+        <div>
+          <div class="install-modal-title">Add to Home Screen</div>
+          <div class="install-modal-platform">${platformLabel}</div>
+        </div>
+      </div>
+      <div class="install-modal-steps">${stepsHtml}</div>
+      <button class="btn-primary" onclick="this.closest('.install-modal-overlay').remove()">Got it</button>
+    </div>
+  `;
+  modal.addEventListener('click', () => modal.remove());
+  document.body.appendChild(modal);
+  requestAnimationFrame(() => modal.classList.add('open'));
 }
 
 // ─── SVG Icons ────────────────────────────────────────────────────────────────

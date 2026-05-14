@@ -837,6 +837,155 @@ body {
 
 .next-lesson-btn:active { background: var(--primary-light); }
 
+/* ─── Install Banner ───────────────────────────────────────────────────────── */
+
+.install-banner {
+  margin: 24px 20px 0;
+  background: white;
+  border: 1.5px solid #d0e4ef;
+  border-radius: var(--radius);
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+  transition: opacity 0.3s, transform 0.15s;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow: 0 2px 12px rgba(29,96,131,0.08);
+}
+
+.install-banner:active { transform: scale(0.98); }
+
+.install-banner-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  flex-shrink: 0;
+  object-fit: cover;
+}
+
+.install-banner-text { flex: 1; min-width: 0; }
+
+.install-banner-h1 {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 2px;
+  line-height: 1.3;
+}
+
+.install-banner-h3 {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.install-banner-dismiss {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--bg);
+  border: none;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.install-banner-dismiss:hover { background: var(--border); }
+
+/* ─── Install Modal ─────────────────────────────────────────────────────────── */
+
+.install-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 500;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.install-modal-overlay.open { opacity: 1; }
+
+.install-modal {
+  background: white;
+  border-radius: 20px 20px 0 0;
+  padding: 28px 24px calc(24px + env(safe-area-inset-bottom));
+  width: 100%;
+  max-width: 520px;
+  transform: translateY(40px);
+  transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.install-modal-overlay.open .install-modal { transform: translateY(0); }
+
+.install-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.install-modal-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.install-modal-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+
+.install-modal-platform {
+  font-size: 13px;
+  color: #1d6083;
+  font-weight: 500;
+}
+
+.install-modal-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.install-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.install-step-icon {
+  font-size: 22px;
+  flex-shrink: 0;
+  width: 32px;
+  text-align: center;
+  line-height: 1.4;
+}
+
+.install-step-text {
+  font-size: 15px;
+  color: var(--text);
+  line-height: 1.5;
+  padding-top: 2px;
+}
+
+.install-step-text strong { font-weight: 600; color: var(--text); }
+
 /* ─── Loading ──────────────────────────────────────────────────────────────── */
 
 .loading-screen {

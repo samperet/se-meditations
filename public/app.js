@@ -45,23 +45,9 @@ document.addEventListener('click', (e) => {
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 
-function openSheet(tab) {
-  document.getElementById('auth-sheet').classList.add('open');
-  document.getElementById('sheet-overlay').classList.add('visible');
-  showTab(tab);
-}
-
-function closeSheet() {
-  document.getElementById('auth-sheet').classList.remove('open');
-  document.getElementById('sheet-overlay').classList.remove('visible');
-}
-
-function showTab(tab) {
-  const isLogin = tab === 'login';
-  document.getElementById('login-form').style.display = isLogin ? 'flex' : 'none';
-  document.getElementById('register-form').style.display = isLogin ? 'none' : 'flex';
-  document.getElementById('tab-login').classList.toggle('active', isLogin);
-  document.getElementById('tab-register').classList.toggle('active', !isLogin);
+function showView(view) {
+  document.getElementById('view-login').style.display = view === 'login' ? 'block' : 'none';
+  document.getElementById('view-register').style.display = view === 'register' ? 'block' : 'none';
   clearAuthError();
 }
 

@@ -837,31 +837,59 @@ body {
 
 .next-lesson-btn:active { background: var(--primary-light); }
 
-/* ─── YouTube Embed ─────────────────────────────────────────────────────────── */
+/* ─── YouTube Card ───────────────────────────────────────────────────────────── */
 
-.block-media {
-  padding: 20px 0;
-  border-bottom: 1px solid var(--border);
-}
-
-.block-media:last-child { border-bottom: none; }
-
-.youtube-wrap {
-  position: relative;
-  padding-bottom: 56.25%; /* 16:9 */
-  height: 0;
+.youtube-card {
+  display: block;
+  text-decoration: none;
   border-radius: var(--radius-sm);
   overflow: hidden;
-  background: #000;
-  margin-top: 10px;
+  border: 1.5px solid var(--border);
+  background: var(--bg-card);
+  transition: transform 0.15s, box-shadow 0.15s;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.youtube-wrap iframe {
-  position: absolute;
-  inset: 0;
+.youtube-card:active { transform: scale(0.98); }
+
+.youtube-thumb-wrap {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background: #000;
+  overflow: hidden;
+}
+
+.youtube-thumb-img {
   width: 100%;
   height: 100%;
-  border: none;
+  object-fit: cover;
+  display: block;
+}
+
+.youtube-play-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.15);
+  transition: background 0.15s;
+}
+
+.youtube-card:hover .youtube-play-overlay { background: rgba(0,0,0,0.25); }
+
+.youtube-play-icon {
+  width: 64px;
+  height: 45px;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.4));
+}
+
+.youtube-card-label {
+  padding: 11px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.4;
 }
 
 /* ─── Link Button ────────────────────────────────────────────────────────────── */

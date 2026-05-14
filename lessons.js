@@ -59,7 +59,7 @@ module.exports = [
         ]
       },
       { type: 'info', content: 'Step 2 — Ask: What is aware of all this? What is your sense of the spaciousness that holds all these experiences?\n\nStep 3 — Rest as Sky: If possible, go outside and watch the clouds for 5–10 minutes. As you watch, notice: the sky holds everything. The weather changes. The sky is just, there. Or if you\'re indoors, watch the video below.' },
-      { type: 'youtube', url: 'https://www.youtube.com/watch?v=CLqBMCRbPbk', label: 'Watch: Clouds & Sky' },
+      { type: 'youtube', url: 'https://www.youtube.com/watch?v=Qu7mcKZgqv0', label: 'Watch: Clouds & Sky' },
       { type: 'info', content: 'Step 4 — Take a contemplative 3–5 minutes to rest as the spaciousness that holds everything. Not trying to change your weather. Just being the space in which it appears.' },
       { type: 'questions', questions: [
         { id: 'p2', label: 'What did you notice during this rest? (thoughts, feelings, sensations)' }

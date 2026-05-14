@@ -375,15 +375,18 @@ function renderBlock(block, blockIndex, lessonId, responses) {
   if (block.type === 'youtube') {
     const vid = youtubeId(block.url);
     if (!vid) return '';
+    const thumb = `https://img.youtube.com/vi/${vid}/mqdefault.jpg`;
     return `
-      <div class="block-media">
-        ${block.label ? `<div class="block-title">${escHtml(block.label)}</div>` : ''}
-        <div class="youtube-wrap">
-          <iframe src="https://www.youtube-nocookie.com/embed/${vid}?rel=0"
-            frameborder="0" loading="lazy" allowfullscreen
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture">
-          </iframe>
-        </div>
+      <div class="block-link">
+        <a href="https://www.youtube.com/watch?v=${vid}" target="_blank" rel="noopener noreferrer" class="youtube-card">
+          <div class="youtube-thumb-wrap">
+            <img src="${thumb}" alt="${escHtml(block.label || 'Watch on YouTube')}" class="youtube-thumb-img">
+            <div class="youtube-play-overlay">
+              <svg class="youtube-play-icon" viewBox="0 0 68 48"><path d="M66.52 7.74c-.78-2.93-2.49-5.41-5.42-6.19C55.79.13 34 0 34 0S12.21.13 6.9 1.55c-2.93.78-4.63 3.26-5.42 6.19C.06 13.05 0 24 0 24s.06 10.95 1.48 16.26c.78 2.93 2.49 5.41 5.42 6.19C12.21 47.87 34 48 34 48s21.79-.13 27.1-1.55c2.93-.78 4.64-3.26 5.42-6.19C67.94 34.95 68 24 68 24s-.06-10.95-1.48-16.26z" fill="#f00"/><path d="M45 24 27 14v20" fill="#fff"/></svg>
+            </div>
+          </div>
+          ${block.label ? `<div class="youtube-card-label">${escHtml(block.label)}</div>` : ''}
+        </a>
       </div>`;
   }
 

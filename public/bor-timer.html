@@ -975,16 +975,22 @@ function buildTimeline() {
 
   bar.addEventListener('mousedown', e => {
     e.preventDefault();
-    seekTo(posToTime(e), true);
-    const onMove = e => { e.preventDefault(); seekTo(posToTime(e), true); };
+    const startX = e.clientX;
+    let dragging = false;
+    const onMove = e => {
+      e.preventDefault();
+      if (!dragging && Math.abs(e.clientX - startX) < 4) return;
+      dragging = true;
+      seekTo(posToTime(e), true);
+    };
     const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
   });
 
   bar.addEventListener('touchstart', e => {
-    seekTo(posToTime(e), true);
-    const onMove = e => { e.preventDefault(); seekTo(posToTime(e), true); };
+    let dragged = false;
+    const onMove = e => { e.preventDefault(); dragged = true; seekTo(posToTime(e), true); };
     const onEnd = () => { bar.removeEventListener('touchmove', onMove); bar.removeEventListener('touchend', onEnd); };
     bar.addEventListener('touchmove', onMove, { passive: false });
     bar.addEventListener('touchend', onEnd);

@@ -614,6 +614,188 @@ body {
   color: white;
 }
 
+/* ─── Admin ───────────────────────────────────────────────────────────────── */
+
+.admin-page {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 24px 20px 40px;
+}
+
+.admin-hero {
+  background: linear-gradient(160deg, #e3edf4 0%, #f0f5f1 60%, #f8f5f0 100%);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 20px;
+  margin-bottom: 18px;
+}
+
+.admin-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--primary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+}
+
+.admin-title {
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.admin-copy {
+  font-size: 14px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.admin-summary {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.admin-stat {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  min-width: 150px;
+  box-shadow: var(--shadow);
+}
+
+.admin-stat-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.9px;
+  margin-bottom: 6px;
+}
+
+.admin-stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.admin-user-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.admin-user-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 18px;
+}
+
+.admin-user-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.admin-user-name {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.admin-user-email,
+.admin-user-meta {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.admin-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  background: #e3edf4;
+  color: var(--primary);
+  white-space: nowrap;
+}
+
+.admin-badge.admin {
+  background: #efe8fb;
+  color: #6b46c1;
+}
+
+.admin-reset-form {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.admin-reset-input {
+  flex: 1 1 220px;
+  min-width: 0;
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 14px;
+  color: var(--text);
+  background: #fff;
+}
+
+.admin-reset-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(29,96,131,0.12);
+}
+
+.admin-reset-btn {
+  border: none;
+  border-radius: 999px;
+  background: var(--primary);
+  color: white;
+  padding: 12px 18px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.admin-reset-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+@media (max-width: 560px) {
+  .admin-page {
+    padding: 20px 16px 36px;
+  }
+
+  .admin-user-top {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .admin-reset-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
 /* ─── Lesson Page ──────────────────────────────────────────────────────────── */
 
 .lesson-page {

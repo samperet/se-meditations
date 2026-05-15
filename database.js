@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const ADMIN_EMAIL = 'samperet@gmail.com';
 
 // ─── Postgres (production) ────────────────────────────────────────────────────
 
@@ -18,6 +19,7 @@ if (process.env.DATABASE_URL) {
       name TEXT NOT NULL,
       email TEXT UNIQUE NOT NULL,
       password_hash TEXT NOT NULL,
+      is_admin BOOLEAN NOT NULL DEFAULT FALSE,
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
     CREATE TABLE IF NOT EXISTS responses (
@@ -36,7 +38,10 @@ if (process.env.DATABASE_URL) {
       completed_at TIMESTAMPTZ DEFAULT NOW(),
       UNIQUE(user_id, lesson_id)
     );
-  `).catch(err => console.error('DB init error:', err));
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT FALSE;
+  `)
+    .then(() => pool.query('UPDATE users SET is_admin = TRUE WHERE LOWER(email) = LOWER($1)', [ADMIN_EMAIL]))
+    .catch(err => console.error('DB init error:', err));
 }
 
 // ─── JSON fallback (local dev) ────────────────────────────────────────────────
@@ -48,10 +53,31 @@ let local = { users: [], responses: {}, progress: {} };
 if (!pool) {
   if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
   try { local = JSON.parse(fs.readFileSync(DB_FILE, 'utf8')); } catch {}
+  if (!Array.isArray(local.users)) local.users = [];
+  let changed = false;
+  local.users = local.users.map(user => {
+    const normalized = {
+      ...user,
+      isAdmin: user.email?.toLowerCase() === ADMIN_EMAIL || !!user.isAdmin,
+    };
+    if (normalized.isAdmin !== user.isAdmin) changed = true;
+    return normalized;
+  });
+  if (changed) saveLocal();
 }
 
 function saveLocal() {
   fs.writeFileSync(DB_FILE, JSON.stringify(local, null, 2));
+}
+
+function normalizeUser(row) {
+  if (!row) return null;
+  return {
+    ...row,
+    passwordHash: row.password_hash ?? row.passwordHash,
+    isAdmin: row.is_admin ?? row.isAdmin ?? false,
+    createdAt: row.created_at ?? row.createdAt ?? null,
+  };
 }
 
 // ─── Users ────────────────────────────────────────────────────────────────────
@@ -59,20 +85,28 @@ function saveLocal() {
 async function findUserByEmail(email) {
   if (pool) {
     const { rows } = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
-    if (!rows[0]) return null;
-    return { ...rows[0], passwordHash: rows[0].password_hash };
+    return normalizeUser(rows[0]);
   }
-  return local.users.find(u => u.email === email) || null;
+  return normalizeUser(local.users.find(u => u.email === email) || null);
+}
+
+async function findUserById(id) {
+  if (pool) {
+    const { rows } = await pool.query('SELECT * FROM users WHERE id = $1', [id]);
+    return normalizeUser(rows[0]);
+  }
+  return normalizeUser(local.users.find(u => String(u.id) === String(id)) || null);
 }
 
 async function createUser(name, email, passwordHash) {
+  const isAdmin = email.toLowerCase() === ADMIN_EMAIL;
   if (pool) {
     try {
       const { rows } = await pool.query(
-        'INSERT INTO users (name, email, password_hash) VALUES ($1, $2, $3) RETURNING *',
-        [name, email, passwordHash]
+        'INSERT INTO users (name, email, password_hash, is_admin) VALUES ($1, $2, $3, $4) RETURNING *',
+        [name, email, passwordHash, isAdmin]
       );
-      return { ...rows[0], passwordHash: rows[0].password_hash };
+      return normalizeUser(rows[0]);
     } catch (err) {
       if (err.code === '23505') throw Object.assign(new Error('Email already registered'), { code: 'DUPLICATE' });
       throw err;
@@ -81,10 +115,39 @@ async function createUser(name, email, passwordHash) {
   if (local.users.find(u => u.email === email)) {
     throw Object.assign(new Error('Email already registered'), { code: 'DUPLICATE' });
   }
-  const user = { id: Date.now(), name, email, passwordHash };
+  const user = { id: Date.now(), name, email, passwordHash, isAdmin, createdAt: new Date().toISOString() };
   local.users.push(user);
   saveLocal();
-  return user;
+  return normalizeUser(user);
+}
+
+async function listUsers() {
+  if (pool) {
+    const { rows } = await pool.query(`
+      SELECT id, name, email, is_admin, created_at
+      FROM users
+      ORDER BY LOWER(name), LOWER(email)
+    `);
+    return rows.map(normalizeUser);
+  }
+  return [...local.users]
+    .map(normalizeUser)
+    .sort((a, b) => `${a.name} ${a.email}`.localeCompare(`${b.name} ${b.email}`));
+}
+
+async function setUserPassword(userId, passwordHash) {
+  if (pool) {
+    const { rowCount } = await pool.query(
+      'UPDATE users SET password_hash = $2 WHERE id = $1',
+      [userId, passwordHash]
+    );
+    return rowCount > 0;
+  }
+  const user = local.users.find(u => String(u.id) === String(userId));
+  if (!user) return false;
+  user.passwordHash = passwordHash;
+  saveLocal();
+  return true;
 }
 
 // ─── Responses ────────────────────────────────────────────────────────────────
@@ -145,4 +208,14 @@ async function markComplete(userId, lessonId) {
   saveLocal();
 }
 
-module.exports = { findUserByEmail, createUser, getResponses, setResponse, getProgress, markComplete };
+module.exports = {
+  findUserByEmail,
+  findUserById,
+  createUser,
+  listUsers,
+  setUserPassword,
+  getResponses,
+  setResponse,
+  getProgress,
+  markComplete,
+};

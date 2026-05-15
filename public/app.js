@@ -10,6 +10,7 @@ let saveTimers = {};
 let navHistory = [];
 let playbackRate = 1;
 let autoplayNext = false;
+const ADMIN_EMAIL = 'samperet@gmail.com';
 
 // ─── API ──────────────────────────────────────────────────────────────────────
 
@@ -133,6 +134,10 @@ function toggleUserMenu() {
   document.getElementById('user-menu').classList.toggle('visible');
 }
 
+function currentUserIsAdmin() {
+  return !!(currentUser?.isAdmin || currentUser?.email?.toLowerCase() === ADMIN_EMAIL);
+}
+
 // ─── App Shell ────────────────────────────────────────────────────────────────
 
 async function showApp() {
@@ -143,6 +148,7 @@ async function showApp() {
   const initial = (currentUser?.name || '?')[0].toUpperCase();
   document.getElementById('user-btn').textContent = initial;
   document.getElementById('user-menu-name').textContent = currentUser?.name || '';
+  document.getElementById('admin-menu-item').style.display = currentUserIsAdmin() ? 'block' : 'none';
 
   await loadHome();
 }
@@ -186,6 +192,113 @@ async function loadHome() {
     renderHome();
   } catch (err) {
     setContent(`<div class="loading-screen"><p>Could not load lessons. Please try again.</p></div>`);
+  }
+}
+
+async function openAdminPanel() {
+  document.getElementById('user-menu').classList.remove('visible');
+  await loadAdminPanel();
+}
+
+async function loadAdminPanel() {
+  if (!currentUserIsAdmin()) {
+    showToast('Admin access required.');
+    return;
+  }
+  stopAudio();
+  currentLessonId = null;
+  navHistory = [{ type: 'home' }, { type: 'admin' }];
+  setHeader('Admin', true);
+  setContent('<div class="loading-screen"><div class="spinner"></div></div>');
+
+  try {
+    const users = await api('GET', '/api/admin/users');
+    renderAdminPanel(users);
+  } catch (err) {
+    setContent(`<div class="loading-screen"><p>${escHtml(err.message || 'Could not load admin panel.')}</p></div>`);
+  }
+}
+
+function renderAdminPanel(users) {
+  const adminCount = users.filter(user => user.isAdmin).length;
+  const html = `
+    <div class="admin-page">
+      <div class="admin-hero">
+        <div class="admin-eyebrow">Admin</div>
+        <div class="admin-title">User administration</div>
+        <div class="admin-copy">View all registered users and set a new password for any account. Password resets take effect immediately.</div>
+      </div>
+
+      <div class="admin-summary">
+        <div class="admin-stat">
+          <div class="admin-stat-label">Registered Users</div>
+          <div class="admin-stat-value">${users.length}</div>
+        </div>
+        <div class="admin-stat">
+          <div class="admin-stat-label">Admins</div>
+          <div class="admin-stat-value">${adminCount}</div>
+        </div>
+      </div>
+
+      <div class="admin-user-list">
+        ${users.map(renderAdminUserCard).join('')}
+      </div>
+    </div>
+  `;
+  setContent(html);
+}
+
+function renderAdminUserCard(user) {
+  const createdAt = user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'Unknown';
+  return `
+    <div class="admin-user-card">
+      <div class="admin-user-top">
+        <div>
+          <div class="admin-user-name">${escHtml(user.name)}</div>
+          <div class="admin-user-email">${escHtml(user.email)}</div>
+          <div class="admin-user-meta">Created ${escHtml(createdAt)}</div>
+        </div>
+        <div class="admin-badge ${user.isAdmin ? 'admin' : ''}">${user.isAdmin ? 'Admin' : 'Member'}</div>
+      </div>
+
+      <form class="admin-reset-form" onsubmit="resetUserPassword(event, '${String(user.id)}')">
+        <input
+          class="admin-reset-input"
+          id="admin-password-${String(user.id)}"
+          type="password"
+          minlength="6"
+          placeholder="Enter a new password"
+          autocomplete="new-password"
+          required
+        >
+        <button class="admin-reset-btn" id="admin-reset-btn-${String(user.id)}" type="submit">Reset Password</button>
+      </form>
+    </div>
+  `;
+}
+
+async function resetUserPassword(event, userId) {
+  event.preventDefault();
+  const input = document.getElementById(`admin-password-${userId}`);
+  const btn = document.getElementById(`admin-reset-btn-${userId}`);
+  const password = input.value;
+
+  if (!password || password.length < 6) {
+    showToast('Password must be at least 6 characters.');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Resetting...';
+  try {
+    await api('POST', `/api/admin/users/${encodeURIComponent(userId)}/reset-password`, { password });
+    input.value = '';
+    showToast('Password reset successfully.');
+  } catch (err) {
+    showToast(err.message || 'Could not reset password.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Reset Password';
   }
 }
 

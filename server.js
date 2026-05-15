@@ -18,13 +18,34 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // ─── Auth middleware ─────────────────────────────────────────────────────────
 
-function authMiddleware(req, res, next) {
+async function authMiddleware(req, res, next) {
   const tok = req.headers.authorization?.startsWith('Bearer ')
     ? req.headers.authorization.slice(7)
     : req.query.t;
   if (!tok) return res.status(401).json({ error: 'Unauthorized' });
-  try { req.user = jwt.verify(tok, JWT_SECRET); next(); }
-  catch { res.status(401).json({ error: 'Invalid token' }); }
+  let decoded;
+  try { decoded = jwt.verify(tok, JWT_SECRET); }
+  catch { return res.status(401).json({ error: 'Invalid token' }); }
+
+  try {
+    const dbUser = await db.findUserById(decoded.id);
+    if (!dbUser) return res.status(401).json({ error: 'Unauthorized' });
+    req.user = {
+      id: dbUser.id,
+      name: dbUser.name,
+      email: dbUser.email,
+      isAdmin: !!dbUser.isAdmin,
+    };
+    next();
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error. Please try again.' });
+  }
+}
+
+function adminMiddleware(req, res, next) {
+  if (!req.user?.isAdmin) return res.status(403).json({ error: 'Admin access required.' });
+  next();
 }
 
 // ─── Auth routes ─────────────────────────────────────────────────────────────
@@ -38,7 +59,7 @@ app.post('/api/auth/register', async (req, res) => {
   try {
     const hash = await bcrypt.hash(password, 10);
     const user = await db.createUser(name.trim(), email.trim().toLowerCase(), hash);
-    const payload = { id: user.id, name: user.name, email: user.email };
+    const payload = { id: user.id, name: user.name, email: user.email, isAdmin: !!user.isAdmin };
     const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '30d' });
     res.json({ token, user: payload });
   } catch (err) {
@@ -57,9 +78,43 @@ app.post('/api/auth/login', async (req, res) => {
     if (!user) return res.status(401).json({ error: 'No account found with that email.' });
     const valid = await bcrypt.compare(password, user.passwordHash);
     if (!valid) return res.status(401).json({ error: 'Incorrect password.' });
-    const payload = { id: user.id, name: user.name, email: user.email };
+    const payload = { id: user.id, name: user.name, email: user.email, isAdmin: !!user.isAdmin };
     const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '30d' });
     res.json({ token, user: payload });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error. Please try again.' });
+  }
+});
+
+// ─── Admin ───────────────────────────────────────────────────────────────────
+
+app.get('/api/admin/users', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const users = await db.listUsers();
+    res.json(users.map(user => ({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      isAdmin: !!user.isAdmin,
+      createdAt: user.createdAt,
+    })));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error. Please try again.' });
+  }
+});
+
+app.post('/api/admin/users/:id/reset-password', authMiddleware, adminMiddleware, async (req, res) => {
+  const { password } = req.body;
+  if (!password || password.length < 6) {
+    return res.status(400).json({ error: 'Password must be at least 6 characters.' });
+  }
+  try {
+    const hash = await bcrypt.hash(password, 10);
+    const updated = await db.setUserPassword(req.params.id, hash);
+    if (!updated) return res.status(404).json({ error: 'User not found.' });
+    res.json({ ok: true });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error. Please try again.' });

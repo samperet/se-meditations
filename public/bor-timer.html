@@ -589,7 +589,7 @@
 <div id="timer">
   <header class="timer-header">
     <button class="btn-nav" onclick="goBack()">← Back</button>
-    <span class="timer-header-title">BOR Timer</span>
+    <span class="timer-header-title">Breakout Room Timer</span>
     <button class="btn-nav" onclick="resetTimer()">Reset</button>
   </header>
 
@@ -917,9 +917,7 @@ function render() {
   });
 
 
-  document.getElementById('info-bar').textContent = round === 4
-    ? 'Each person shares for 1 minute, then return to main room'
-    : 'In this round, you rotate: Listener → Speaker → Observer';
+  document.getElementById('info-bar').textContent = 'Sacred Engagement';
 
   renderInstructions();
 }

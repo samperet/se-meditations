@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>BOR Timer — Sacred Engagement</title>
+  <link rel="icon" href="/favicon.ico">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f8f5f0;
+      --card: #ffffff;
+      --text: #2d2b28;
+      --muted: #6b6560;
+      --border: #e0d8cf;
+      --green: #7C9885;
+      --green-dark: #6a8774;
+      --radius: 12px;
+      /* Role colors */
+      --listener: #5b8fc2;
+      --listener-light: #eaf2fb;
+      --listener-border: #a8cce8;
+      --speaker: #c4854a;
+      --speaker-light: #fdf3eb;
+      --speaker-border: #e8c49a;
+      --observer: #9b87b3;
+      --observer-light: #f3f0f8;
+      --observer-border: #c5b9d6;
+      /* Phase colors */
+      --setup: #6b9ec4;
+      --sharing: #7C9885;
+      --feedback: #d4956a;
+      --reflection: #9b87b3;
+      --final: #4dbbad;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ─── Welcome ──────────────────────────────────────────────────────── */
+
+    #welcome {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0 20px 48px;
+      background: linear-gradient(160deg, #e3edf4 0%, #eef3f0 50%, #f8f5f0 100%);
+    }
+
+    .welcome-nav {
+      width: 100%;
+      max-width: 500px;
+      padding: 16px 0 0;
+    }
+
+    .btn-back-app {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 14px;
+      cursor: pointer;
+      padding: 6px 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      text-decoration: none;
+    }
+
+    .welcome-hero {
+      text-align: center;
+      padding: 32px 0 28px;
+    }
+
+    .welcome-icon {
+      width: 80px;
+      height: 80px;
+      border-radius: 20px;
+      margin: 0 auto 18px;
+      display: block;
+    }
+
+    .welcome-title {
+      font-size: 34px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      margin-bottom: 8px;
+    }
+
+    .welcome-sub { font-size: 16px; color: var(--muted); margin-bottom: 4px; }
+    .welcome-meta { font-size: 14px; color: var(--muted); }
+
+    .welcome-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 22px 24px;
+      width: 100%;
+      max-width: 460px;
+      margin: 24px 0 32px;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+    }
+
+    .welcome-card-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--green);
+      margin-bottom: 14px;
+    }
+
+    .phase-legend { display: flex; flex-direction: column; gap: 10px; }
+
+    .phase-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 14px;
+    }
+
+    .legend-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+    .legend-duration { margin-left: auto; font-size: 13px; color: var(--muted); }
+
+    .btn-start {
+      padding: 18px 52px;
+      background: var(--green);
+      color: white;
+      border: none;
+      border-radius: 100px;
+      font-size: 18px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(124,152,133,0.4);
+      transition: all 0.15s;
+    }
+
+    .btn-start:hover { background: var(--green-dark); }
+    .btn-start:active { transform: scale(0.97); }
+
+    /* ─── Timer screen ─────────────────────────────────────────────────── */
+
+    #timer { display: none; flex-direction: column; min-height: 100vh; }
+    #timer.visible { display: flex; }
+
+    .timer-header {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 12px 16px;
+      padding-top: max(12px, env(safe-area-inset-top));
+      gap: 10px;
+    }
+
+    .btn-nav {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 14px;
+      cursor: pointer;
+      padding: 6px 8px;
+      border-radius: 8px;
+      white-space: nowrap;
+    }
+
+    .btn-nav:hover { background: var(--bg); }
+
+    .timer-header-title { flex: 1; font-size: 17px; font-weight: 700; text-align: center; }
+
+    /* Main display */
+    .timer-main {
+      background: var(--card);
+      padding: 22px 20px 18px;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .round-label {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .phase-badge {
+      display: inline-block;
+      padding: 4px 16px;
+      border-radius: 100px;
+      font-size: 11px;
+      font-weight: 700;
+      color: white;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 12px;
+    }
+
+    .countdown {
+      font-size: clamp(60px, 18vw, 86px);
+      font-weight: 800;
+      letter-spacing: -3px;
+      line-height: 1;
+      margin-bottom: 6px;
+      font-variant-numeric: tabular-nums;
+      transition: color 0.4s;
+    }
+
+    .countdown-sub { font-size: 13px; color: var(--muted); margin-bottom: 10px; }
+
+    .elapsed-pill {
+      display: inline-block;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      padding: 4px 14px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    /* Controls */
+    .timer-controls {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+      padding: 12px 14px;
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .btn-play {
+      padding: 12px 36px;
+      background: var(--green);
+      color: white;
+      border: none;
+      border-radius: 100px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      min-width: 120px;
+      box-shadow: 0 2px 10px rgba(124,152,133,0.3);
+      transition: all 0.15s;
+    }
+
+    .btn-play:hover { background: var(--green-dark); }
+    .btn-play:active { transform: scale(0.97); }
+    .btn-play:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .btn-secondary {
+      padding: 12px 20px;
+      background: transparent;
+      color: var(--text);
+      border: 1.5px solid var(--border);
+      border-radius: 100px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+
+    .btn-secondary:hover { background: var(--border); }
+    .btn-secondary:active { transform: scale(0.97); }
+
+    .btn-next-phase {
+      padding: 12px 20px;
+      background: transparent;
+      color: #1d6083;
+      border: 1.5px solid #1d6083;
+      border-radius: 100px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+
+    .btn-next-phase:hover { background: #e3edf4; }
+    .btn-next-phase:active { transform: scale(0.97); }
+
+    /* Timeline */
+    .timeline-section {
+      background: var(--card);
+      padding: 13px 14px 10px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .timeline-wrap { position: relative; user-select: none; }
+
+    .timeline-bar {
+      display: flex;
+      height: 28px;
+      border-radius: 6px;
+      overflow: hidden;
+      margin-bottom: 6px;
+      cursor: pointer;
+      touch-action: none;
+    }
+
+    .tl-seg {
+      height: 100%;
+      position: relative;
+      transition: opacity 0.3s;
+      pointer-events: none;
+    }
+
+    .tl-seg.past { opacity: 0.45; }
+    .tl-seg.current { opacity: 1; }
+    .tl-seg.future { opacity: 0.25; }
+
+    @keyframes tl-pulse {
+      0%, 100% { filter: brightness(1); }
+      50% { filter: brightness(1.15); }
+    }
+
+    .tl-seg.current { animation: tl-pulse 2s ease-in-out infinite; }
+
+    .tl-cursor {
+      position: absolute;
+      top: -4px;
+      width: 4px;
+      height: 36px;
+      background: white;
+      border-radius: 2px;
+      box-shadow: 0 0 0 2px rgba(0,0,0,0.3);
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    .tl-markers { position: relative; height: 16px; margin-top: 2px; }
+
+    .tl-marker {
+      position: absolute;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--muted);
+      transform: translateX(-50%);
+    }
+
+    /* Tooltip */
+    .tl-tooltip {
+      position: fixed;
+      background: rgba(20,20,20,0.9);
+      color: white;
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      pointer-events: none;
+      z-index: 300;
+      display: none;
+      white-space: nowrap;
+    }
+
+    /* Role tabs */
+    .tabs-section {
+      padding: 12px 14px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .role-tabs { display: flex; gap: 8px; }
+
+    .role-tab {
+      flex: 1;
+      padding: 12px 6px;
+      border-radius: 10px;
+      border: 1.5px solid;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      transition: all 0.15s;
+      -webkit-tap-highlight-color: transparent;
+      min-height: 60px;
+    }
+
+    .role-tab[data-role="Listener"] {
+      background: var(--listener-light);
+      border-color: var(--listener-border);
+    }
+
+    .role-tab[data-role="Speaker"] {
+      background: var(--speaker-light);
+      border-color: var(--speaker-border);
+    }
+
+    .role-tab[data-role="Observer"] {
+      background: var(--observer-light);
+      border-color: var(--observer-border);
+    }
+
+    .role-tab[data-role="Listener"].active {
+      background: linear-gradient(135deg, #5b8fc2, #4a7db0);
+      border-color: transparent;
+      box-shadow: 0 2px 10px rgba(91,143,194,0.35);
+    }
+
+    .role-tab[data-role="Speaker"].active {
+      background: linear-gradient(135deg, #c4854a, #b5733a);
+      border-color: transparent;
+      box-shadow: 0 2px 10px rgba(196,133,74,0.35);
+    }
+
+    .role-tab[data-role="Observer"].active {
+      background: linear-gradient(135deg, #9b87b3, #8a76a2);
+      border-color: transparent;
+      box-shadow: 0 2px 10px rgba(155,135,179,0.35);
+    }
+
+    .tab-name {
+      font-size: 14px;
+      font-weight: 700;
+      display: block;
+      line-height: 1;
+    }
+
+    .role-tab[data-role="Listener"] .tab-name { color: var(--listener); }
+    .role-tab[data-role="Speaker"]  .tab-name { color: var(--speaker); }
+    .role-tab[data-role="Observer"] .tab-name { color: var(--observer); }
+    .role-tab.active .tab-name { color: white; }
+
+    .tab-sub {
+      font-size: 10px;
+      display: block;
+      line-height: 1;
+      min-height: 12px;
+    }
+
+    .role-tab[data-role="Listener"] .tab-sub { color: #7aabd4; }
+    .role-tab[data-role="Speaker"]  .tab-sub { color: #d4a070; }
+    .role-tab[data-role="Observer"] .tab-sub { color: #b5a3c8; }
+    .role-tab.active .tab-sub { color: rgba(255,255,255,0.78); }
+
+    /* Instructions */
+    .instructions-section {
+      padding: 18px 16px;
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      flex: 1;
+    }
+
+    .instructions-title {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 14px;
+    }
+
+    .instr-item {
+      display: flex;
+      gap: 10px;
+      padding: 9px 10px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      font-size: 14px;
+      line-height: 1.55;
+      align-items: flex-start;
+    }
+
+    .instr-arrow { font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+
+    .role-tab[data-role="Listener"] ~ * .instr-arrow { color: var(--listener); }
+
+    .instr-item.important {
+      background: linear-gradient(135deg, #f0f5f1, #e8f0e9);
+      border-left: 3px solid var(--green);
+      padding-left: 12px;
+    }
+
+    /* Info bar */
+    .info-bar {
+      padding: 12px 16px;
+      padding-bottom: max(12px, env(safe-area-inset-bottom));
+      background: var(--bg);
+      font-size: 13px;
+      color: var(--muted);
+      text-align: center;
+      border-top: 1px solid var(--border);
+    }
+
+    /* ─── Warning overlay ──────────────────────────────────────────────── */
+
+    #warning-overlay {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: linear-gradient(135deg, #ff6b6b, #ee5a6f);
+      color: white;
+      padding: 2.5rem 3rem;
+      border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+      min-width: min(400px, 88vw);
+      z-index: 1000;
+      text-align: center;
+    }
+
+    #warning-overlay h2 { font-size: clamp(1.5rem, 5vw, 2rem); font-weight: 800; margin-bottom: 10px; }
+    #warning-overlay p { font-size: clamp(1rem, 3.5vw, 1.2rem); opacity: 0.95; }
+
+    @keyframes shake {
+      0%, 100% { transform: translate(-50%, -50%) rotate(0deg); }
+      10%, 30%, 50%, 70%, 90% { transform: translate(-50%, -50%) rotate(-3deg); }
+      20%, 40%, 60%, 80% { transform: translate(-50%, -50%) rotate(3deg); }
+    }
+    @keyframes fadeOut {
+      0%, 70% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+
+    #warning-overlay.show {
+      display: block;
+      animation: shake 0.5s ease, fadeOut 4s ease forwards;
+    }
+
+    /* ─── Desktop ───────────────────────────────────────────────────────── */
+
+    @media (min-width: 640px) {
+      #timer { max-width: 640px; margin: 0 auto; box-shadow: 0 0 40px rgba(0,0,0,0.07); background: var(--card); }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ─── Welcome ─────────────────────────────────────────────────────────────── -->
+<div id="welcome">
+  <nav class="welcome-nav">
+    <a href="/" class="btn-back-app">← Back to Meditations</a>
+  </nav>
+
+  <div class="welcome-hero">
+    <img src="/apple-touch-icon.png" class="welcome-icon" alt="">
+    <h1 class="welcome-title">BOR Timer</h1>
+    <p class="welcome-sub">Breakout Room Session Guide</p>
+    <p class="welcome-meta">65 minutes &nbsp;·&nbsp; 3 rounds &nbsp;·&nbsp; 3 rotating roles</p>
+  </div>
+
+  <div class="welcome-card">
+    <div class="welcome-card-title">Session Structure (per round)</div>
+    <div class="phase-legend">
+      <div class="phase-legend-item">
+        <div class="legend-dot" style="background:var(--setup)"></div>
+        Setup &amp; Greetings <span class="legend-duration">2 min</span>
+      </div>
+      <div class="phase-legend-item">
+        <div class="legend-dot" style="background:var(--sharing)"></div>
+        Active Sharing <span class="legend-duration">13 min</span>
+      </div>
+      <div class="phase-legend-item">
+        <div class="legend-dot" style="background:var(--feedback)"></div>
+        Feedback Exchange <span class="legend-duration">3 min</span>
+      </div>
+      <div class="phase-legend-item">
+        <div class="legend-dot" style="background:var(--reflection)"></div>
+        Reflection &amp; Rotate <span class="legend-duration">2 min</span>
+      </div>
+      <div class="phase-legend-item">
+        <div class="legend-dot" style="background:var(--final)"></div>
+        Self-Discovery &amp; Gratitude <span class="legend-duration">5 min</span>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn-start" onclick="startSession()">Start Timer</button>
+</div>
+
+<!-- ─── Timer ────────────────────────────────────────────────────────────────── -->
+<div id="timer">
+  <header class="timer-header">
+    <button class="btn-nav" onclick="goBack()">← Back</button>
+    <span class="timer-header-title">BOR Timer</span>
+    <button class="btn-nav" onclick="resetTimer()">Reset</button>
+  </header>
+
+  <div class="timer-main">
+    <div class="round-label" id="round-label">Round 1 of 3</div>
+    <span class="phase-badge" id="phase-badge">Setup &amp; Greetings</span>
+    <div class="countdown" id="countdown">02:00</div>
+    <div class="countdown-sub">remaining in phase</div>
+    <span class="elapsed-pill" id="elapsed-pill">Total elapsed: 0:00 / 65:00</span>
+  </div>
+
+  <div class="timer-controls">
+    <button class="btn-play" id="play-btn" onclick="togglePlay()">Pause</button>
+    <button class="btn-secondary" onclick="resetTimer()">Reset</button>
+    <button class="btn-next-phase" onclick="nextPhase()">Next Phase →</button>
+  </div>
+
+  <div class="timeline-section">
+    <div class="section-label">Session Timeline — drag to seek</div>
+    <div class="timeline-wrap" id="tl-wrap">
+      <div class="timeline-bar" id="tl-bar"></div>
+      <div class="tl-cursor" id="tl-cursor" style="left:0"></div>
+      <div class="tl-markers" id="tl-markers"></div>
+    </div>
+  </div>
+
+  <div class="tabs-section">
+    <div class="role-tabs">
+      <button class="role-tab active" data-role="Listener" onclick="selectTab('Listener')">
+        <span class="tab-name">Listener</span>
+      </button>
+      <button class="role-tab" data-role="Speaker" onclick="selectTab('Speaker')">
+        <span class="tab-name">Speaker</span>
+      </button>
+      <button class="role-tab" data-role="Observer" onclick="selectTab('Observer')">
+        <span class="tab-name">Observer</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="instructions-section">
+    <div class="instructions-title" id="instr-title"></div>
+    <div id="instr-list"></div>
+  </div>
+
+  <div class="info-bar" id="info-bar"></div>
+</div>
+
+<div class="tl-tooltip" id="tl-tooltip"></div>
+
+<div id="warning-overlay">
+  <h2>2 Minutes Remaining</h2>
+  <p>Speaker should begin wrapping up their sharing</p>
+</div>
+
+<script>
+const TOTAL = 3900;
+
+const PHASES = [
+  { name:'Setup & Greetings',         start:0,    end:120,  round:1, type:'setup' },
+  { name:'Active Sharing',             start:120,  end:900,  round:1, type:'sharing' },
+  { name:'Feedback Exchange',          start:900,  end:1080, round:1, type:'feedback' },
+  { name:'Reflection & Rotate',        start:1080, end:1200, round:1, type:'reflection' },
+  { name:'Setup & Greetings',         start:1200, end:1320, round:2, type:'setup' },
+  { name:'Active Sharing',             start:1320, end:2100, round:2, type:'sharing' },
+  { name:'Feedback Exchange',          start:2100, end:2280, round:2, type:'feedback' },
+  { name:'Reflection & Rotate',        start:2280, end:2400, round:2, type:'reflection' },
+  { name:'Setup & Greetings',         start:2400, end:2520, round:3, type:'setup' },
+  { name:'Active Sharing',             start:2520, end:3300, round:3, type:'sharing' },
+  { name:'Feedback Exchange',          start:3300, end:3480, round:3, type:'feedback' },
+  { name:'Reflection & Rotate',        start:3480, end:3600, round:3, type:'reflection' },
+  { name:'Self-Discovery & Gratitude', start:3600, end:3900, round:4, type:'final' },
+];
+
+const COLORS  = { setup:'#6b9ec4', sharing:'#7C9885', feedback:'#d4956a', reflection:'#9b87b3', final:'#4dbbad' };
+const GONGS   = new Set([120,900,1080,1200,1320,2100,2280,2400,2520,3300,3480,3600]);
+const WARNINGS= new Set([780,1980,3180]);
+
+const ROTATIONS = {
+  1:{ Listener:'Listener', Speaker:'Speaker',  Observer:'Observer' },
+  2:{ Listener:'Speaker',  Speaker:'Observer', Observer:'Listener' },
+  3:{ Listener:'Observer', Speaker:'Listener', Observer:'Speaker'  },
+  4:{ Listener:'Listener', Speaker:'Speaker',  Observer:'Observer' },
+};
+
+const ROLE_ARROW_COLOR = { Listener:'#5b8fc2', Speaker:'#c4854a', Observer:'#9b87b3' };
+
+const INSTRUCTIONS = {
+  setup:{
+    Listener:{title:'Prepare to Listen',items:[
+      {t:'Write down each person\'s name',imp:false},
+      {t:'Confirm you are the Listener this round (alphabetical by first name)',imp:false},
+      {t:'Announce what aspect of engaged listening you\'ll focus on',imp:true},
+      {t:'Take a moment to silently center yourself',imp:false},
+      {t:'When ready, signal the Speaker to begin',imp:true},
+    ]},
+    Speaker:{title:'Prepare to Share',items:[
+      {t:'Write down each person\'s name',imp:false},
+      {t:'Confirm you are the Speaker this round',imp:false},
+      {t:'Reflect on what you want to share in your process',imp:false},
+      {t:'Wait patiently for the Listener to signal readiness',imp:true},
+      {t:'Prepare to share honestly and pause for perception checks',imp:false},
+    ]},
+    Observer:{title:'Prepare to Observe',items:[
+      {t:'Write down each person\'s name',imp:false},
+      {t:'Confirm you are the Observer this round',imp:false},
+      {t:'Prepare your note-taking materials',imp:false},
+      {t:'Remind Listener to signal Speaker if needed',imp:true},
+      {t:'Note which aspect of listening the Listener announced',imp:true},
+    ]},
+  },
+  sharing:{
+    Listener:{title:'Active Listening',items:[
+      {t:'Signal the Speaker when you\'re ready to listen',imp:true},
+      {t:'Practice engaged listening with full presence',imp:false},
+      {t:'Use perception checking to confirm understanding',imp:false},
+      {t:'Reflect back what you hear to ensure accuracy',imp:false},
+      {t:'Notice your own listening patterns and presence',imp:false},
+      {t:'Stay focused on understanding, not responding',imp:false},
+    ]},
+    Speaker:{title:'Authentic Sharing',items:[
+      {t:'Share honestly about your process',imp:false},
+      {t:'Speak about releasing emotional blocks or tensions',imp:false},
+      {t:'Pause occasionally to let Listener check understanding',imp:false},
+      {t:'Notice how the Listener\'s attention affects your sharing',imp:false},
+      {t:'You\'ll receive a 2-minute warning from the Observer',imp:true},
+      {t:'Begin wrapping up your sharing',imp:true},
+    ]},
+    Observer:{title:'Mindful Observation',items:[
+      {t:'Watch the Listener\'s engaged listening process',imp:false},
+      {t:'Notice the specific aspect they said they\'d focus on',imp:false},
+      {t:'Take notes on their listening techniques',imp:false},
+      {t:'Observe body language, presence, and engagement',imp:false},
+      {t:'Signal Speaker when 2 minutes remain',imp:true},
+      {t:'Prepare feedback on Listener\'s skills (not Speaker\'s story)',imp:false},
+    ]},
+  },
+  feedback:{
+    Listener:{title:'Receive Feedback',items:[
+      {t:'Listen openly to Observer\'s feedback first',imp:false},
+      {t:'Receive feedback from Speaker next',imp:false},
+      {t:'Notice what feedback resonates or surprises you',imp:false},
+      {t:'Stay curious and open rather than defensive',imp:true},
+      {t:'Prepare to share your own reflection next',imp:false},
+    ]},
+    Speaker:{title:'Give Feedback',items:[
+      {t:'First, listen to Observer give feedback to Listener',imp:false},
+      {t:'Then share how Listener\'s skills affected you',imp:false},
+      {t:'Be specific: what helped you share more deeply?',imp:false},
+      {t:'What listening techniques made you feel heard?',imp:false},
+      {t:'Keep feedback focused on Listener\'s process, not your story',imp:true},
+    ]},
+    Observer:{title:'Provide Feedback',items:[
+      {t:'Give feedback to Listener first',imp:true},
+      {t:'Focus on their listening process, NOT Speaker\'s content',imp:true},
+      {t:'Note specific techniques: perception checking, presence, body language',imp:false},
+      {t:'What was effective about their listening?',imp:false},
+      {t:'Listen to Speaker\'s feedback to Listener',imp:false},
+      {t:'Observe how Listener receives and processes feedback',imp:false},
+    ]},
+  },
+  reflection:{
+    Listener:{title:'Self-Reflection',items:[
+      {t:'Describe your engaged listening experience',imp:false},
+      {t:'What did you notice about your listening?',imp:false},
+      {t:'How did the feedback land for you?',imp:false},
+      {t:'What did you learn about yourself?',imp:false},
+      {t:'Prepare to become the Speaker in the next round',imp:true},
+    ]},
+    Speaker:{title:'Listen & Prepare',items:[
+      {t:'Listen to Listener\'s self-reflection',imp:false},
+      {t:'Notice their self-awareness and insights',imp:false},
+      {t:'Gong signals role rotation',imp:true},
+      {t:'Prepare to become the Observer in the next round',imp:true},
+    ]},
+    Observer:{title:'Listen & Prepare',items:[
+      {t:'Listen to Listener give self-feedback',imp:false},
+      {t:'Notice patterns in learning and growth',imp:false},
+      {t:'Gong signals role rotation',imp:true},
+      {t:'Prepare to become the Listener in the next round',imp:true},
+    ]},
+  },
+  final:{
+    Listener:{title:'Final Sharing',items:[
+      {t:'Each person takes 1 minute to share',imp:false},
+      {t:'Complete: "In our work together today, I learned ___ about myself"',imp:true},
+      {t:'Express gratitude to your partners',imp:false},
+      {t:'Share how they helped you learn and grow',imp:false},
+      {t:'Return to main room after gong',imp:true},
+    ]},
+    Speaker:{title:'Final Sharing',items:[
+      {t:'Each person takes 1 minute to share',imp:false},
+      {t:'Complete: "In our work together today, I learned ___ about myself"',imp:true},
+      {t:'Express gratitude to your partners',imp:false},
+      {t:'Share how they helped you learn and grow',imp:false},
+      {t:'Return to main room after gong',imp:true},
+    ]},
+    Observer:{title:'Final Sharing',items:[
+      {t:'Each person takes 1 minute to share',imp:false},
+      {t:'Complete: "In our work together today, I learned ___ about myself"',imp:true},
+      {t:'Express gratitude to your partners',imp:false},
+      {t:'Share how they helped you learn and grow',imp:false},
+      {t:'Return to main room after gong',imp:true},
+    ]},
+  },
+};
+
+// ─── State ─────────────────────────────────────────────────────────────────────
+
+let elapsed = 0, running = false, activeTab = 'Listener';
+let interval = null, audioCtx = null, lastGong = -1, lastWarn = -1, built = false;
+
+// ─── Helpers ───────────────────────────────────────────────────────────────────
+
+const fmt = s => `${String(Math.floor(s/60)).padStart(2,'0')}:${String(Math.floor(s%60)).padStart(2,'0')}`;
+const getPhase = () => PHASES.find(p => elapsed >= p.start && elapsed < p.end) || PHASES[PHASES.length-1];
+
+// ─── Audio ─────────────────────────────────────────────────────────────────────
+
+function ensureAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+function playGong() {
+  try {
+    ensureAudio();
+    const ctx = audioCtx, now = ctx.currentTime;
+    const o1 = ctx.createOscillator(), o2 = ctx.createOscillator(), g = ctx.createGain();
+    o1.connect(g); o2.connect(g); g.connect(ctx.destination);
+    o1.frequency.setValueAtTime(130, now); o2.frequency.setValueAtTime(195, now);
+    o1.type = o2.type = 'sine';
+    g.gain.setValueAtTime(0.3, now);
+    g.gain.exponentialRampToValueAtTime(0.01, now + 2);
+    o1.start(now); o2.start(now); o1.stop(now + 2); o2.stop(now + 2);
+  } catch(e) {}
+}
+
+// ─── Warning ───────────────────────────────────────────────────────────────────
+
+function showWarning() {
+  const el = document.getElementById('warning-overlay');
+  el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 4000);
+}
+
+// ─── Seek ──────────────────────────────────────────────────────────────────────
+
+function seekTo(t) {
+  const prev = elapsed;
+  elapsed = Math.max(0, Math.min(TOTAL, Math.round(t)));
+  // Play gong if we crossed a gong boundary
+  for (const g of GONGS) {
+    if (prev < g && elapsed >= g) { playGong(); break; }
+  }
+  render();
+}
+
+function nextPhase() {
+  const phase = getPhase();
+  seekTo(phase.end);
+}
+
+// ─── Timer ─────────────────────────────────────────────────────────────────────
+
+function tick() {
+  if (elapsed >= TOTAL) { stopTimer(); render(); return; }
+  elapsed++;
+  if (GONGS.has(elapsed) && elapsed !== lastGong)   { lastGong = elapsed; playGong(); }
+  if (WARNINGS.has(elapsed) && elapsed !== lastWarn) { lastWarn = elapsed; showWarning(); }
+  render();
+}
+
+function togglePlay() {
+  ensureAudio();
+  if (running) { stopTimer(); }
+  else { if (elapsed >= TOTAL) return; interval = setInterval(tick, 1000); running = true; }
+  render();
+}
+
+function stopTimer() { clearInterval(interval); interval = null; running = false; }
+
+function resetTimer() {
+  stopTimer(); elapsed = 0; lastGong = -1; lastWarn = -1; render();
+}
+
+function selectTab(role) {
+  activeTab = role;
+  document.querySelectorAll('.role-tab').forEach(t => t.classList.toggle('active', t.dataset.role === role));
+  renderInstructions();
+}
+
+// ─── Render ────────────────────────────────────────────────────────────────────
+
+function render() {
+  const phase = getPhase();
+  const color = COLORS[phase.type];
+  const remaining = Math.max(0, phase.end - elapsed);
+  const round = phase.round;
+  const rot = ROTATIONS[round] || ROTATIONS[1];
+
+  document.getElementById('round-label').textContent =
+    round === 4 ? 'Final Sharing' : `Round ${round} of 3`;
+
+  const badge = document.getElementById('phase-badge');
+  badge.textContent = phase.name; badge.style.background = color;
+
+  const cd = document.getElementById('countdown');
+  cd.textContent = fmt(remaining); cd.style.color = color;
+
+  document.getElementById('elapsed-pill').textContent = `Total elapsed: ${fmt(elapsed)} / 65:00`;
+
+  const playBtn = document.getElementById('play-btn');
+  playBtn.textContent = elapsed >= TOTAL ? 'Done' : running ? 'Pause' : 'Play';
+  playBtn.disabled = elapsed >= TOTAL;
+
+  // Timeline cursor
+  const pct = (elapsed / TOTAL) * 100;
+  document.getElementById('tl-cursor').style.left = `calc(${pct}% - 2px)`;
+
+  // Segment states
+  document.querySelectorAll('.tl-seg').forEach((seg, i) => {
+    const p = PHASES[i];
+    seg.className = 'tl-seg ' + (elapsed >= p.end ? 'past' : elapsed >= p.start ? 'current' : 'future');
+  });
+
+
+  document.getElementById('info-bar').textContent = round === 4
+    ? 'Each person shares for 1 minute, then return to main room'
+    : 'In this round, you rotate: Listener → Speaker → Observer';
+
+  renderInstructions();
+}
+
+function renderInstructions() {
+  const phase = getPhase();
+  const data = INSTRUCTIONS[phase.type]?.[activeTab];
+  if (!data) return;
+  const arrowColor = ROLE_ARROW_COLOR[activeTab];
+  document.getElementById('instr-title').textContent = data.title;
+  document.getElementById('instr-list').innerHTML = data.items.map(item => `
+    <div class="instr-item ${item.imp ? 'important' : ''}">
+      <span class="instr-arrow" style="color:${arrowColor}">&rarr;</span>
+      <span>${item.t}</span>
+    </div>`).join('');
+}
+
+// ─── Timeline (with drag-to-seek) ──────────────────────────────────────────────
+
+function buildTimeline() {
+  if (built) return; built = true;
+  const bar = document.getElementById('tl-bar');
+  const markers = document.getElementById('tl-markers');
+  const tooltip = document.getElementById('tl-tooltip');
+
+  PHASES.forEach(p => {
+    const seg = document.createElement('div');
+    seg.className = 'tl-seg future';
+    seg.style.width = ((p.end - p.start) / TOTAL * 100) + '%';
+    seg.style.background = COLORS[p.type];
+    bar.appendChild(seg);
+  });
+
+  // Hover tooltips
+  bar.addEventListener('mousemove', e => {
+    const rect = bar.getBoundingClientRect();
+    const pct = (e.clientX - rect.left) / rect.width;
+    const t = Math.round(pct * TOTAL);
+    const p = PHASES.find(ph => t >= ph.start && t < ph.end) || PHASES[PHASES.length-1];
+    const dur = Math.round((p.end - p.start) / 60);
+    tooltip.textContent = `${p.name} (${p.round === 4 ? 'Final' : 'Round ' + p.round}) — ${dur} min`;
+    tooltip.style.display = 'block';
+    tooltip.style.left = (e.clientX + 12) + 'px';
+    tooltip.style.top = (e.clientY - 34) + 'px';
+  });
+  bar.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; });
+
+  // Drag-to-seek
+  function posToTime(e) {
+    const rect = bar.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    return Math.max(0, Math.min(TOTAL, ((clientX - rect.left) / rect.width) * TOTAL));
+  }
+
+  bar.addEventListener('mousedown', e => {
+    e.preventDefault();
+    seekTo(posToTime(e));
+    const onMove = e => { e.preventDefault(); seekTo(posToTime(e)); };
+    const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+
+  bar.addEventListener('touchstart', e => {
+    seekTo(posToTime(e));
+    const onMove = e => { e.preventDefault(); seekTo(posToTime(e)); };
+    const onEnd = () => { bar.removeEventListener('touchmove', onMove); bar.removeEventListener('touchend', onEnd); };
+    bar.addEventListener('touchmove', onMove, { passive: false });
+    bar.addEventListener('touchend', onEnd);
+  }, { passive: true });
+
+  // Round markers
+  [0, 1200, 2400, 3600].forEach((t, i) => {
+    const m = document.createElement('div');
+    m.className = 'tl-marker';
+    m.textContent = ['R1','R2','R3','End'][i];
+    m.style.left = ((t / TOTAL) * 100) + '%';
+    markers.appendChild(m);
+  });
+}
+
+// ─── Navigation ────────────────────────────────────────────────────────────────
+
+function startSession() {
+  document.getElementById('welcome').style.display = 'none';
+  document.getElementById('timer').classList.add('visible');
+  buildTimeline();
+  // Auto-start with opening gong
+  ensureAudio();
+  playGong();
+  interval = setInterval(tick, 1000);
+  running = true;
+  render();
+}
+
+function goBack() {
+  stopTimer();
+  document.getElementById('timer').classList.remove('visible');
+  document.getElementById('welcome').style.display = 'flex';
+}
+</script>
+</body>
+</html>

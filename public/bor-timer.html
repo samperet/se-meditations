@@ -838,12 +838,13 @@ function showWarning() {
 
 // ─── Seek ──────────────────────────────────────────────────────────────────────
 
-function seekTo(t) {
+function seekTo(t, silent = false) {
   const prev = elapsed;
   elapsed = Math.max(0, Math.min(TOTAL, Math.round(t)));
-  // Play gong if we crossed a gong boundary
-  for (const g of GONGS) {
-    if (prev < g && elapsed >= g) { playGong(); break; }
+  if (!silent) {
+    for (const g of GONGS) {
+      if (prev < g && elapsed >= g) { playGong(); break; }
+    }
   }
   render();
 }
@@ -974,16 +975,16 @@ function buildTimeline() {
 
   bar.addEventListener('mousedown', e => {
     e.preventDefault();
-    seekTo(posToTime(e));
-    const onMove = e => { e.preventDefault(); seekTo(posToTime(e)); };
+    seekTo(posToTime(e), true);
+    const onMove = e => { e.preventDefault(); seekTo(posToTime(e), true); };
     const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
   });
 
   bar.addEventListener('touchstart', e => {
-    seekTo(posToTime(e));
-    const onMove = e => { e.preventDefault(); seekTo(posToTime(e)); };
+    seekTo(posToTime(e), true);
+    const onMove = e => { e.preventDefault(); seekTo(posToTime(e), true); };
     const onEnd = () => { bar.removeEventListener('touchmove', onMove); bar.removeEventListener('touchend', onEnd); };
     bar.addEventListener('touchmove', onMove, { passive: false });
     bar.addEventListener('touchend', onEnd);

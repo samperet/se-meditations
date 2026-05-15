@@ -288,6 +288,9 @@ body {
 
 .user-menu-item:hover { background: var(--bg); }
 .user-menu-item.danger { color: #dc2626; }
+.user-menu-item.user-menu-strong {
+  font-weight: 800;
+}
 
 .user-menu-donate {
   display: flex;
@@ -689,6 +692,194 @@ body {
   gap: 12px;
 }
 
+.admin-section-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text);
+  margin: 22px 0 12px;
+}
+
+.admin-form-card,
+.cohort-card,
+.facilitator-cohort-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 18px;
+}
+
+.admin-form-inline {
+  padding-top: 4px;
+}
+
+.admin-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.admin-form-grid .full {
+  grid-column: 1 / -1;
+}
+
+.admin-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.admin-field input,
+.admin-field select {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 11px 12px;
+  font-size: 14px;
+  color: var(--text);
+  background: #fff;
+}
+
+.admin-field input:focus,
+.admin-field select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(29,96,131,0.12);
+}
+
+.cohort-checklist {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.cohort-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 10px;
+  background: var(--bg);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.cohort-check input {
+  width: auto;
+}
+
+.admin-form-actions,
+.admin-user-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 14px;
+}
+
+.admin-secondary-btn {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: white;
+  color: var(--text);
+  padding: 11px 16px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.admin-danger-btn {
+  border: 1px solid #f5c2c7;
+  border-radius: 999px;
+  background: white;
+  color: #b91c1c;
+  padding: 11px 16px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.admin-danger-btn:hover { background: #fff0f0; }
+
+.admin-danger-note {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.cohort-list,
+.facilitator-cohort-list,
+.cohort-registration-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cohort-card + .cohort-card {
+  margin-top: 12px;
+}
+
+.cohort-card-title,
+.facilitator-cohort-title,
+.cohort-registration-title {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.cohort-meta,
+.cohort-registration-meta {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.cohort-member-line {
+  font-size: 13px;
+  color: var(--text);
+  margin-top: 8px;
+}
+
+.cohort-edit {
+  margin-top: 14px;
+  display: none;
+}
+
+.cohort-edit.visible {
+  display: block;
+}
+
+.facilitator-participant-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.facilitator-participant {
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--bg);
+  font-size: 14px;
+}
+
+.email-cohort-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 14px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: white;
+  padding: 12px 18px;
+  font-size: 14px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
 .admin-user-card {
   background: var(--bg-card);
   border: 1px solid var(--border);
@@ -738,11 +929,28 @@ body {
   color: #6b46c1;
 }
 
+.admin-badges {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.admin-badge.facilitator {
+  background: #e7f4ed;
+  color: #24714b;
+}
+
 .admin-reset-form {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
   align-items: center;
+  margin-top: 12px;
+}
+
+.admin-reset-form[hidden] {
+  display: none;
 }
 
 .admin-reset-input {
@@ -783,6 +991,11 @@ body {
 @media (max-width: 560px) {
   .admin-page {
     padding: 20px 16px 36px;
+  }
+
+  .admin-form-grid,
+  .cohort-checklist {
+    grid-template-columns: 1fr;
   }
 
   .admin-user-top {

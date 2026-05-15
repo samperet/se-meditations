@@ -10,6 +10,7 @@ let saveTimers = {};
 let navHistory = [];
 let playbackRate = 1;
 let autoplayNext = false;
+let myCohorts = [];
 const ADMIN_EMAIL = 'samperet@gmail.com';
 
 // ─── API ──────────────────────────────────────────────────────────────────────
@@ -31,7 +32,13 @@ async function api(method, path, body) {
 
 window.addEventListener('DOMContentLoaded', () => {
   // Direct link to register: /?register or ?register=1
-  if (new URLSearchParams(location.search).has('register')) {
+  const params = new URLSearchParams(location.search);
+  if (params.has('cohorts')) {
+    document.getElementById('auth-screen').style.display = 'flex';
+    showCohortRegistration();
+    return;
+  }
+  if (params.has('register')) {
     document.getElementById('auth-screen').style.display = 'flex';
     showView('register');
     return;
@@ -55,6 +62,7 @@ document.addEventListener('click', (e) => {
 function showView(view) {
   document.getElementById('view-login').style.display = view === 'login' ? 'block' : 'none';
   document.getElementById('view-register').style.display = view === 'register' ? 'block' : 'none';
+  document.getElementById('view-cohorts').style.display = view === 'cohorts' ? 'block' : 'none';
   clearAuthError();
 }
 
@@ -123,6 +131,7 @@ function logout() {
   token = null;
   currentUser = null;
   allLessons = [];
+  myCohorts = [];
   localStorage.removeItem('se_token');
   localStorage.removeItem('se_user');
   document.getElementById('app-screen').classList.remove('visible');
@@ -138,6 +147,14 @@ function currentUserIsAdmin() {
   return !!(currentUser?.isAdmin || currentUser?.email?.toLowerCase() === ADMIN_EMAIL);
 }
 
+function currentUserIsFacilitator() {
+  return !!currentUser?.isFacilitator;
+}
+
+function currentUserCanManageCohorts() {
+  return currentUserIsAdmin() || currentUserIsFacilitator();
+}
+
 // ─── App Shell ────────────────────────────────────────────────────────────────
 
 async function showApp() {
@@ -149,6 +166,8 @@ async function showApp() {
   document.getElementById('user-btn').textContent = initial;
   document.getElementById('user-menu-name').textContent = currentUser?.name || '';
   document.getElementById('admin-menu-item').style.display = currentUserIsAdmin() ? 'block' : 'none';
+  document.getElementById('add-cohort-menu-item').style.display = currentUserCanManageCohorts() ? 'block' : 'none';
+  refreshCohortMenuAccess();
 
   await loadHome();
 }
@@ -195,6 +214,44 @@ async function loadHome() {
   }
 }
 
+async function showCohortRegistration() {
+  showView('cohorts');
+  const list = document.getElementById('cohort-registration-list');
+  list.innerHTML = '<div class="spinner"></div>';
+  try {
+    const cohorts = await api('GET', '/api/cohorts');
+    list.innerHTML = cohorts.length
+      ? cohorts.map(renderPublicCohortCard).join('')
+      : '<p class="auth-switch">No cohorts are currently open for registration.</p>';
+  } catch (err) {
+    list.innerHTML = `<p class="auth-switch">${escHtml(err.message || 'Could not load cohorts.')}</p>`;
+  }
+}
+
+function renderPublicCohortCard(cohort) {
+  const facilitators = cohort.facilitators?.map(user => user.name).filter(Boolean).join(', ') || 'To be announced';
+  return `
+    <div class="cohort-card">
+      <div class="cohort-registration-title">Module ${cohort.moduleNumber}: ${escHtml(cohort.name)}</div>
+      <div class="cohort-registration-meta">${formatCohortDates(cohort)} · ${escHtml(cohort.meetingDay)} at ${escHtml(cohort.meetingTime)} ${escHtml(cohort.timezone)}</div>
+      <div class="cohort-registration-meta">Facilitator${facilitators.includes(',') ? 's' : ''}: ${escHtml(facilitators)}</div>
+    </div>
+  `;
+}
+
+async function refreshCohortMenuAccess() {
+  if (!token) return;
+  try {
+    myCohorts = await api('GET', '/api/my/cohorts');
+    document.getElementById('add-cohort-menu-item').style.display = currentUserCanManageCohorts() ? 'block' : 'none';
+    document.getElementById('cohorts-menu-item').style.display =
+      currentUserIsAdmin() || myCohorts.length ? 'block' : 'none';
+  } catch {
+    document.getElementById('add-cohort-menu-item').style.display = currentUserCanManageCohorts() ? 'block' : 'none';
+    document.getElementById('cohorts-menu-item').style.display = currentUserIsAdmin() ? 'block' : 'none';
+  }
+}
+
 async function openAdminPanel() {
   document.getElementById('user-menu').classList.remove('visible');
   await loadAdminPanel();
@@ -212,14 +269,17 @@ async function loadAdminPanel() {
   setContent('<div class="loading-screen"><div class="spinner"></div></div>');
 
   try {
-    const users = await api('GET', '/api/admin/users');
-    renderAdminPanel(users);
+    const [users, cohorts] = await Promise.all([
+      api('GET', '/api/admin/users'),
+      api('GET', '/api/admin/cohorts'),
+    ]);
+    renderAdminPanel(users, cohorts);
   } catch (err) {
     setContent(`<div class="loading-screen"><p>${escHtml(err.message || 'Could not load admin panel.')}</p></div>`);
   }
 }
 
-function renderAdminPanel(users) {
+function renderAdminPanel(users, cohorts) {
   const adminCount = users.filter(user => user.isAdmin).length;
   const html = `
     <div class="admin-page">
@@ -238,8 +298,18 @@ function renderAdminPanel(users) {
           <div class="admin-stat-label">Admins</div>
           <div class="admin-stat-value">${adminCount}</div>
         </div>
+        <div class="admin-stat">
+          <div class="admin-stat-label">Cohorts</div>
+          <div class="admin-stat-value">${cohorts.length}</div>
+        </div>
       </div>
 
+      <div class="admin-section-title">Cohorts</div>
+      <div class="cohort-list">
+        ${cohorts.length ? cohorts.map(cohort => renderAdminCohortCard(cohort, users)).join('') : '<div class="admin-user-card">No cohorts have been created yet.</div>'}
+      </div>
+
+      <div class="admin-section-title">Users</div>
       <div class="admin-user-list">
         ${users.map(renderAdminUserCard).join('')}
       </div>
@@ -258,10 +328,20 @@ function renderAdminUserCard(user) {
           <div class="admin-user-email">${escHtml(user.email)}</div>
           <div class="admin-user-meta">Created ${escHtml(createdAt)}</div>
         </div>
-        <div class="admin-badge ${user.isAdmin ? 'admin' : ''}">${user.isAdmin ? 'Admin' : 'Member'}</div>
+        <div class="admin-badges">
+          <div class="admin-badge ${user.isAdmin ? 'admin' : ''}">${user.isAdmin ? 'Admin' : 'Member'}</div>
+          ${user.isFacilitator ? '<div class="admin-badge facilitator">Facilitator</div>' : ''}
+        </div>
       </div>
 
-      <form class="admin-reset-form" onsubmit="resetUserPassword(event, '${String(user.id)}')">
+      <div class="admin-user-actions">
+        ${user.isAdmin ? '' : `<button class="admin-secondary-btn" onclick="makeUserAdmin('${String(user.id)}')">Make Admin</button>`}
+        ${user.isFacilitator ? '' : `<button class="admin-secondary-btn" onclick="makeUserFacilitator('${String(user.id)}')">Make Facilitator</button>`}
+        <button class="admin-secondary-btn" onclick="showPasswordReset('${String(user.id)}')">Reset Password</button>
+        <button class="admin-danger-btn" onclick="deleteUser('${String(user.id)}', '${escHtml(user.name)}')">Delete</button>
+      </div>
+
+      <form class="admin-reset-form" id="admin-reset-form-${String(user.id)}" hidden onsubmit="resetUserPassword(event, '${String(user.id)}')">
         <input
           class="admin-reset-input"
           id="admin-password-${String(user.id)}"
@@ -271,10 +351,229 @@ function renderAdminUserCard(user) {
           autocomplete="new-password"
           required
         >
-        <button class="admin-reset-btn" id="admin-reset-btn-${String(user.id)}" type="submit">Reset Password</button>
+        <button class="admin-reset-btn" id="admin-reset-btn-${String(user.id)}" type="submit">Save Password</button>
+        <button class="admin-secondary-btn" type="button" onclick="hidePasswordReset('${String(user.id)}')">Cancel</button>
       </form>
     </div>
   `;
+}
+
+function renderCohortForm(prefix, users, cohort = null, options = {}) {
+  const facilitatorIds = new Set((cohort?.facilitators || []).map(user => String(user.id)));
+  const participantIds = new Set((cohort?.participants || []).map(user => String(user.id)));
+  const facilitatorUsers = users.filter(user => user.isFacilitator || facilitatorIds.has(String(user.id)));
+  const createHandler = options.createHandler || 'createCohort';
+  return `
+    <form class="${cohort ? 'admin-form-inline' : 'admin-form-card'}" onsubmit="${cohort ? `updateCohort(event, '${String(cohort.id)}')` : `${createHandler}(event)`}">
+      <div class="admin-form-grid">
+        <label class="admin-field full">
+          Cohort name
+          <input id="${prefix}-name" value="${escAttr(cohort?.name || '')}" placeholder="Spring Evening Cohort" required>
+        </label>
+        <label class="admin-field">
+          Module
+          <select id="${prefix}-module" required>
+            ${[1,2,3,4].map(n => `<option value="${n}" ${Number(cohort?.moduleNumber) === n ? 'selected' : ''}>Module ${n}</option>`).join('')}
+          </select>
+        </label>
+        <label class="admin-field">
+          Day
+          <input id="${prefix}-day" value="${escAttr(cohort?.meetingDay || '')}" placeholder="Tuesdays" required>
+        </label>
+        <label class="admin-field">
+          Start date
+          <input id="${prefix}-start" type="date" value="${escAttr(cohort?.startDate || '')}" required>
+        </label>
+        <label class="admin-field">
+          End date
+          <input id="${prefix}-end" type="date" value="${escAttr(cohort?.endDate || '')}" required>
+        </label>
+        <label class="admin-field">
+          Time
+          <input id="${prefix}-time" value="${escAttr(cohort?.meetingTime || '')}" placeholder="6:00 PM" required>
+        </label>
+        <label class="admin-field">
+          Timezone
+          <input id="${prefix}-timezone" value="${escAttr(cohort?.timezone || 'America/New_York')}" required>
+        </label>
+        <div class="admin-field full">
+          Facilitators
+          ${renderUserChecklist(facilitatorUsers, `${prefix}-facilitators`, facilitatorIds, 'No facilitator users yet. Mark a user as facilitator from Admin first.')}
+        </div>
+        <div class="admin-field full">
+          Participants
+          ${renderUserChecklist(users, `${prefix}-participants`, participantIds)}
+        </div>
+      </div>
+      <div class="admin-form-actions">
+        <button class="admin-reset-btn" type="submit">${cohort ? 'Update Cohort' : 'Create Cohort'}</button>
+        ${cohort ? `<button class="admin-secondary-btn" type="button" onclick="toggleCohortEdit('${String(cohort.id)}')">Cancel</button>` : ''}
+      </div>
+    </form>
+  `;
+}
+
+function renderUserChecklist(users, name, selectedIds, emptyMessage = 'No users available.') {
+  if (!users.length) return `<div class="admin-danger-note">${escHtml(emptyMessage)}</div>`;
+  return `
+    <div class="cohort-checklist">
+      ${users.map(user => `
+        <label class="cohort-check">
+          <input type="checkbox" name="${name}" value="${String(user.id)}" ${selectedIds.has(String(user.id)) ? 'checked' : ''}>
+          <span>${escHtml(user.name)} · ${escHtml(user.email)}</span>
+        </label>
+      `).join('')}
+    </div>
+  `;
+}
+
+function renderAdminCohortCard(cohort, users) {
+  const facilitators = formatUserNames(cohort.facilitators);
+  const participants = formatUserNames(cohort.participants);
+  const id = String(cohort.id);
+  return `
+    <div class="cohort-card">
+      <div class="cohort-card-title">Module ${cohort.moduleNumber}: ${escHtml(cohort.name)}</div>
+      <div class="cohort-meta">${formatCohortDates(cohort)} · ${escHtml(cohort.meetingDay)} at ${escHtml(cohort.meetingTime)} ${escHtml(cohort.timezone)}</div>
+      <div class="cohort-member-line"><strong>Facilitators:</strong> ${escHtml(facilitators)}</div>
+      <div class="cohort-member-line"><strong>Participants:</strong> ${escHtml(participants)}</div>
+      <div class="admin-form-actions">
+        <button class="admin-secondary-btn" onclick="toggleCohortEdit('${id}')">Edit Cohort</button>
+      </div>
+      <div class="cohort-edit" id="cohort-edit-${id}">
+        ${renderCohortForm(`edit-${id}`, users, cohort)}
+      </div>
+    </div>
+  `;
+}
+
+function getCohortFormData(prefix) {
+  const checkedValues = name => [...document.querySelectorAll(`input[name="${name}"]:checked`)].map(input => input.value);
+  return {
+    name: document.getElementById(`${prefix}-name`).value,
+    moduleNumber: document.getElementById(`${prefix}-module`).value,
+    startDate: document.getElementById(`${prefix}-start`).value,
+    endDate: document.getElementById(`${prefix}-end`).value,
+    meetingDay: document.getElementById(`${prefix}-day`).value,
+    meetingTime: document.getElementById(`${prefix}-time`).value,
+    timezone: document.getElementById(`${prefix}-timezone`).value,
+    facilitatorIds: checkedValues(`${prefix}-facilitators`),
+    participantIds: checkedValues(`${prefix}-participants`),
+  };
+}
+
+async function createCohort(event) {
+  event.preventDefault();
+  try {
+    await api('POST', '/api/admin/cohorts', getCohortFormData('new'));
+    showToast('Cohort created.');
+    await loadAdminPanel();
+  } catch (err) {
+    showToast(err.message || 'Could not create cohort.');
+  }
+}
+
+async function updateCohort(event, cohortId) {
+  event.preventDefault();
+  try {
+    await api('PUT', `/api/admin/cohorts/${encodeURIComponent(cohortId)}`, getCohortFormData(`edit-${cohortId}`));
+    showToast('Cohort updated.');
+    await loadAdminPanel();
+  } catch (err) {
+    showToast(err.message || 'Could not update cohort.');
+  }
+}
+
+function toggleCohortEdit(cohortId) {
+  document.getElementById(`cohort-edit-${cohortId}`)?.classList.toggle('visible');
+}
+
+async function makeUserAdmin(userId) {
+  try {
+    await api('POST', `/api/admin/users/${encodeURIComponent(userId)}/make-admin`);
+    showToast('User is now an admin.');
+    await loadAdminPanel();
+  } catch (err) {
+    showToast(err.message || 'Could not update admin access.');
+  }
+}
+
+async function makeUserFacilitator(userId) {
+  try {
+    await api('POST', `/api/admin/users/${encodeURIComponent(userId)}/make-facilitator`);
+    showToast('User is now a facilitator.');
+    await loadAdminPanel();
+  } catch (err) {
+    showToast(err.message || 'Could not update facilitator access.');
+  }
+}
+
+async function deleteUser(userId, name) {
+  if (!confirm(`Delete ${name}? This will permanently remove their account and all their data.`)) return;
+  try {
+    await api('DELETE', `/api/admin/users/${encodeURIComponent(userId)}`);
+    showToast(`${name} has been deleted.`);
+    await loadAdminPanel();
+  } catch (err) {
+    showToast(err.message || 'Could not delete user.');
+  }
+}
+
+async function openAddCohortPanel() {
+  document.getElementById('user-menu').classList.remove('visible');
+  await loadAddCohortPanel();
+}
+
+async function loadAddCohortPanel() {
+  if (!currentUserCanManageCohorts()) {
+    showToast('Facilitator access required.');
+    return;
+  }
+  stopAudio();
+  currentLessonId = null;
+  navHistory = [{ type: 'home' }, { type: 'add-cohort' }];
+  setHeader('Add Cohort', true);
+  setContent('<div class="loading-screen"><div class="spinner"></div></div>');
+
+  try {
+    const users = await api('GET', '/api/cohort-manager/users');
+    setContent(`
+      <div class="admin-page">
+        <div class="admin-hero">
+          <div class="admin-eyebrow">Cohorts</div>
+          <div class="admin-title">Add Cohort</div>
+          <div class="admin-copy">Create a Sacred Engagement module cohort with dates, meeting time, facilitators, and participants.</div>
+        </div>
+        ${renderCohortForm('add', users, null, { createHandler: 'createManagedCohort' })}
+      </div>
+    `);
+  } catch (err) {
+    setContent(`<div class="loading-screen"><p>${escHtml(err.message || 'Could not load Add Cohort.')}</p></div>`);
+  }
+}
+
+async function createManagedCohort(event) {
+  event.preventDefault();
+  try {
+    await api('POST', '/api/cohort-manager/cohorts', getCohortFormData('add'));
+    showToast('Cohort created.');
+    await loadAddCohortPanel();
+  } catch (err) {
+    showToast(err.message || 'Could not create cohort.');
+  }
+}
+
+function showPasswordReset(userId) {
+  const form = document.getElementById(`admin-reset-form-${userId}`);
+  if (form) form.hidden = false;
+  document.getElementById(`admin-password-${userId}`)?.focus();
+}
+
+function hidePasswordReset(userId) {
+  const form = document.getElementById(`admin-reset-form-${userId}`);
+  const input = document.getElementById(`admin-password-${userId}`);
+  if (input) input.value = '';
+  if (form) form.hidden = true;
 }
 
 async function resetUserPassword(event, userId) {
@@ -293,13 +592,69 @@ async function resetUserPassword(event, userId) {
   try {
     await api('POST', `/api/admin/users/${encodeURIComponent(userId)}/reset-password`, { password });
     input.value = '';
+    hidePasswordReset(userId);
     showToast('Password reset successfully.');
   } catch (err) {
     showToast(err.message || 'Could not reset password.');
   } finally {
     btn.disabled = false;
-    btn.textContent = 'Reset Password';
+    btn.textContent = 'Save Password';
   }
+}
+
+async function openFacilitatorCohorts() {
+  document.getElementById('user-menu').classList.remove('visible');
+  await loadFacilitatorCohorts();
+}
+
+async function loadFacilitatorCohorts() {
+  stopAudio();
+  currentLessonId = null;
+  navHistory = [{ type: 'home' }, { type: 'cohorts' }];
+  setHeader('Cohorts', true);
+  setContent('<div class="loading-screen"><div class="spinner"></div></div>');
+
+  try {
+    const cohorts = await api('GET', '/api/my/cohorts');
+    myCohorts = cohorts;
+    renderFacilitatorCohorts(cohorts);
+  } catch (err) {
+    setContent(`<div class="loading-screen"><p>${escHtml(err.message || 'Could not load cohorts.')}</p></div>`);
+  }
+}
+
+function renderFacilitatorCohorts(cohorts) {
+  const html = `
+    <div class="admin-page">
+      <div class="admin-hero">
+        <div class="admin-eyebrow">Facilitator</div>
+        <div class="admin-title">My cohorts</div>
+        <div class="admin-copy">Participant lists and email shortcuts for the cohorts you facilitate.</div>
+      </div>
+
+      <div class="facilitator-cohort-list">
+        ${cohorts.length ? cohorts.map(renderFacilitatorCohortCard).join('') : '<div class="admin-user-card">No facilitator cohorts are assigned to your account yet.</div>'}
+      </div>
+    </div>
+  `;
+  setContent(html);
+}
+
+function renderFacilitatorCohortCard(cohort) {
+  const emails = (cohort.participants || []).map(user => user.email).filter(Boolean);
+  const mailto = `mailto:?cc=${encodeURIComponent(emails.join(','))}&subject=${encodeURIComponent(`Sacred Engagement Module ${cohort.moduleNumber}: ${cohort.name}`)}`;
+  return `
+    <div class="facilitator-cohort-card">
+      <div class="facilitator-cohort-title">Module ${cohort.moduleNumber}: ${escHtml(cohort.name)}</div>
+      <div class="cohort-meta">${formatCohortDates(cohort)} · ${escHtml(cohort.meetingDay)} at ${escHtml(cohort.meetingTime)} ${escHtml(cohort.timezone)}</div>
+      <div class="facilitator-participant-list">
+        ${(cohort.participants || []).length ? cohort.participants.map(user => `
+          <div class="facilitator-participant">${escHtml(user.name)} · ${escHtml(user.email)}</div>
+        `).join('') : '<div class="facilitator-participant">No participants assigned yet.</div>'}
+      </div>
+      ${emails.length ? `<a class="email-cohort-btn" href="${escAttr(mailto)}">Email Participants</a>` : ''}
+    </div>
+  `;
 }
 
 function renderHome() {
@@ -714,6 +1069,29 @@ function setContent(html) {
 
 function escHtml(str) {
   return (str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function escAttr(str) {
+  return escHtml(str).replace(/'/g, '&#39;');
+}
+
+function formatDateOnly(dateStr) {
+  if (!dateStr) return '';
+  const [year, month, day] = String(dateStr).split('-').map(Number);
+  if (!year || !month || !day) return dateStr;
+  return new Date(year, month - 1, day).toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
+function formatCohortDates(cohort) {
+  return `${formatDateOnly(cohort.startDate)} to ${formatDateOnly(cohort.endDate)}`;
+}
+
+function formatUserNames(users = []) {
+  return users.length ? users.map(user => user.name).join(', ') : 'None assigned';
 }
 
 function showToast(msg, duration = 2500) {

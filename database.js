@@ -20,6 +20,7 @@ if (process.env.DATABASE_URL) {
       email TEXT UNIQUE NOT NULL,
       password_hash TEXT NOT NULL,
       is_admin BOOLEAN NOT NULL DEFAULT FALSE,
+      is_facilitator BOOLEAN NOT NULL DEFAULT FALSE,
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
     CREATE TABLE IF NOT EXISTS responses (
@@ -38,9 +39,36 @@ if (process.env.DATABASE_URL) {
       completed_at TIMESTAMPTZ DEFAULT NOW(),
       UNIQUE(user_id, lesson_id)
     );
+    CREATE TABLE IF NOT EXISTS cohorts (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL,
+      module_number INTEGER NOT NULL,
+      start_date TEXT NOT NULL,
+      end_date TEXT NOT NULL,
+      meeting_day TEXT NOT NULL,
+      meeting_time TEXT NOT NULL,
+      timezone TEXT NOT NULL DEFAULT 'America/New_York',
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS cohort_members (
+      id SERIAL PRIMARY KEY,
+      cohort_id INTEGER REFERENCES cohorts(id) ON DELETE CASCADE,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      role TEXT NOT NULL CHECK (role IN ('facilitator', 'participant')),
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(cohort_id, user_id, role)
+    );
     ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT FALSE;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS is_facilitator BOOLEAN NOT NULL DEFAULT FALSE;
   `)
     .then(() => pool.query('UPDATE users SET is_admin = TRUE WHERE LOWER(email) = LOWER($1)', [ADMIN_EMAIL]))
+    .then(() => pool.query(`
+      UPDATE users
+      SET is_facilitator = TRUE
+      WHERE id IN (
+        SELECT user_id FROM cohort_members WHERE role = 'facilitator'
+      )
+    `))
     .catch(err => console.error('DB init error:', err));
 }
 
@@ -54,13 +82,19 @@ if (!pool) {
   if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
   try { local = JSON.parse(fs.readFileSync(DB_FILE, 'utf8')); } catch {}
   if (!Array.isArray(local.users)) local.users = [];
+  if (!Array.isArray(local.cohorts)) local.cohorts = [];
+  if (!Array.isArray(local.cohortMembers)) local.cohortMembers = [];
   let changed = false;
   local.users = local.users.map(user => {
+    const isExistingCohortFacilitator = local.cohortMembers.some(member =>
+      member.role === 'facilitator' && String(member.userId) === String(user.id)
+    );
     const normalized = {
       ...user,
       isAdmin: user.email?.toLowerCase() === ADMIN_EMAIL || !!user.isAdmin,
+      isFacilitator: !!user.isFacilitator || isExistingCohortFacilitator,
     };
-    if (normalized.isAdmin !== user.isAdmin) changed = true;
+    if (normalized.isAdmin !== user.isAdmin || normalized.isFacilitator !== user.isFacilitator) changed = true;
     return normalized;
   });
   if (changed) saveLocal();
@@ -76,7 +110,25 @@ function normalizeUser(row) {
     ...row,
     passwordHash: row.password_hash ?? row.passwordHash,
     isAdmin: row.is_admin ?? row.isAdmin ?? false,
+    isFacilitator: row.is_facilitator ?? row.isFacilitator ?? false,
     createdAt: row.created_at ?? row.createdAt ?? null,
+  };
+}
+
+function normalizeCohort(row, members = []) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    name: row.name,
+    moduleNumber: row.module_number ?? row.moduleNumber,
+    startDate: row.start_date ?? row.startDate,
+    endDate: row.end_date ?? row.endDate,
+    meetingDay: row.meeting_day ?? row.meetingDay,
+    meetingTime: row.meeting_time ?? row.meetingTime,
+    timezone: row.timezone || 'America/New_York',
+    createdAt: row.created_at ?? row.createdAt ?? null,
+    facilitators: members.filter(m => m.role === 'facilitator').map(m => m.user),
+    participants: members.filter(m => m.role === 'participant').map(m => m.user),
   };
 }
 
@@ -100,11 +152,12 @@ async function findUserById(id) {
 
 async function createUser(name, email, passwordHash) {
   const isAdmin = email.toLowerCase() === ADMIN_EMAIL;
+  const isFacilitator = false;
   if (pool) {
     try {
       const { rows } = await pool.query(
-        'INSERT INTO users (name, email, password_hash, is_admin) VALUES ($1, $2, $3, $4) RETURNING *',
-        [name, email, passwordHash, isAdmin]
+        'INSERT INTO users (name, email, password_hash, is_admin, is_facilitator) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+        [name, email, passwordHash, isAdmin, isFacilitator]
       );
       return normalizeUser(rows[0]);
     } catch (err) {
@@ -115,7 +168,7 @@ async function createUser(name, email, passwordHash) {
   if (local.users.find(u => u.email === email)) {
     throw Object.assign(new Error('Email already registered'), { code: 'DUPLICATE' });
   }
-  const user = { id: Date.now(), name, email, passwordHash, isAdmin, createdAt: new Date().toISOString() };
+  const user = { id: Date.now(), name, email, passwordHash, isAdmin, isFacilitator, createdAt: new Date().toISOString() };
   local.users.push(user);
   saveLocal();
   return normalizeUser(user);
@@ -124,7 +177,7 @@ async function createUser(name, email, passwordHash) {
 async function listUsers() {
   if (pool) {
     const { rows } = await pool.query(`
-      SELECT id, name, email, is_admin, created_at
+      SELECT id, name, email, is_admin, is_facilitator, created_at
       FROM users
       ORDER BY LOWER(name), LOWER(email)
     `);
@@ -148,6 +201,193 @@ async function setUserPassword(userId, passwordHash) {
   user.passwordHash = passwordHash;
   saveLocal();
   return true;
+}
+
+async function setUserAdmin(userId, isAdmin = true) {
+  if (pool) {
+    const { rowCount } = await pool.query(
+      'UPDATE users SET is_admin = $2 WHERE id = $1',
+      [userId, !!isAdmin]
+    );
+    return rowCount > 0;
+  }
+  const user = local.users.find(u => String(u.id) === String(userId));
+  if (!user) return false;
+  user.isAdmin = !!isAdmin;
+  saveLocal();
+  return true;
+}
+
+async function setUserFacilitator(userId, isFacilitator = true) {
+  if (pool) {
+    const { rowCount } = await pool.query(
+      'UPDATE users SET is_facilitator = $2 WHERE id = $1',
+      [userId, !!isFacilitator]
+    );
+    return rowCount > 0;
+  }
+  const user = local.users.find(u => String(u.id) === String(userId));
+  if (!user) return false;
+  user.isFacilitator = !!isFacilitator;
+  saveLocal();
+  return true;
+}
+
+async function deleteUser(userId) {
+  if (pool) {
+    const { rowCount } = await pool.query('DELETE FROM users WHERE id = $1', [userId]);
+    return rowCount > 0;
+  }
+  const idx = local.users.findIndex(u => String(u.id) === String(userId));
+  if (idx === -1) return false;
+  local.users.splice(idx, 1);
+  local.responses = (local.responses || []).filter(r => String(r.userId) !== String(userId));
+  local.progress  = (local.progress  || []).filter(p => String(p.userId) !== String(userId));
+  saveLocal();
+  return true;
+}
+
+// ─── Cohorts ─────────────────────────────────────────────────────────────────
+
+async function getCohortMembers(cohortIds = []) {
+  if (cohortIds.length === 0) return {};
+  if (pool) {
+    const { rows } = await pool.query(`
+      SELECT cm.cohort_id, cm.role, u.id, u.name, u.email, u.is_admin, u.is_facilitator, u.created_at
+      FROM cohort_members cm
+      JOIN users u ON u.id = cm.user_id
+      WHERE cm.cohort_id = ANY($1::int[])
+      ORDER BY cm.role, LOWER(u.name), LOWER(u.email)
+    `, [cohortIds.map(Number)]);
+    return rows.reduce((acc, row) => {
+      if (!acc[row.cohort_id]) acc[row.cohort_id] = [];
+      acc[row.cohort_id].push({ role: row.role, user: normalizeUser(row) });
+      return acc;
+    }, {});
+  }
+  return local.cohortMembers.reduce((acc, member) => {
+    if (!cohortIds.some(id => String(id) === String(member.cohortId))) return acc;
+    const user = normalizeUser(local.users.find(u => String(u.id) === String(member.userId)));
+    if (!user) return acc;
+    if (!acc[member.cohortId]) acc[member.cohortId] = [];
+    acc[member.cohortId].push({ role: member.role, user });
+    return acc;
+  }, {});
+}
+
+async function listCohorts() {
+  if (pool) {
+    const { rows } = await pool.query(`
+      SELECT *
+      FROM cohorts
+      ORDER BY start_date, module_number, LOWER(name)
+    `);
+    const members = await getCohortMembers(rows.map(row => row.id));
+    return rows.map(row => normalizeCohort(row, members[row.id] || []));
+  }
+  const cohorts = [...local.cohorts]
+    .sort((a, b) => `${a.startDate} ${a.moduleNumber} ${a.name}`.localeCompare(`${b.startDate} ${b.moduleNumber} ${b.name}`));
+  const members = await getCohortMembers(cohorts.map(cohort => cohort.id));
+  return cohorts.map(cohort => normalizeCohort(cohort, members[cohort.id] || []));
+}
+
+async function setCohortMembers(cohortId, facilitatorIds = [], participantIds = []) {
+  const roles = [
+    ...facilitatorIds.map(userId => ({ userId, role: 'facilitator' })),
+    ...participantIds.map(userId => ({ userId, role: 'participant' })),
+  ];
+  if (pool) {
+    await pool.query('DELETE FROM cohort_members WHERE cohort_id = $1', [cohortId]);
+    for (const member of roles) {
+      await pool.query(`
+        INSERT INTO cohort_members (cohort_id, user_id, role)
+        VALUES ($1, $2, $3)
+        ON CONFLICT (cohort_id, user_id, role) DO NOTHING
+      `, [cohortId, member.userId, member.role]);
+    }
+    return;
+  }
+  local.cohortMembers = local.cohortMembers.filter(member => String(member.cohortId) !== String(cohortId));
+  roles.forEach(member => {
+    local.cohortMembers.push({
+      id: `${cohortId}:${member.userId}:${member.role}`,
+      cohortId,
+      userId: member.userId,
+      role: member.role,
+      createdAt: new Date().toISOString(),
+    });
+  });
+  saveLocal();
+}
+
+async function createCohort(data) {
+  const cohort = {
+    name: data.name,
+    moduleNumber: Number(data.moduleNumber),
+    startDate: data.startDate,
+    endDate: data.endDate,
+    meetingDay: data.meetingDay,
+    meetingTime: data.meetingTime,
+    timezone: data.timezone || 'America/New_York',
+  };
+  if (pool) {
+    const { rows } = await pool.query(`
+      INSERT INTO cohorts (name, module_number, start_date, end_date, meeting_day, meeting_time, timezone)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING *
+    `, [cohort.name, cohort.moduleNumber, cohort.startDate, cohort.endDate, cohort.meetingDay, cohort.meetingTime, cohort.timezone]);
+    await setCohortMembers(rows[0].id, data.facilitatorIds, data.participantIds);
+    return (await listCohorts()).find(item => String(item.id) === String(rows[0].id));
+  }
+  const created = { ...cohort, id: Date.now(), createdAt: new Date().toISOString() };
+  local.cohorts.push(created);
+  saveLocal();
+  await setCohortMembers(created.id, data.facilitatorIds, data.participantIds);
+  return (await listCohorts()).find(item => String(item.id) === String(created.id));
+}
+
+async function updateCohort(cohortId, data) {
+  if (pool) {
+    const { rowCount } = await pool.query(`
+      UPDATE cohorts
+      SET name = $2, module_number = $3, start_date = $4, end_date = $5,
+          meeting_day = $6, meeting_time = $7, timezone = $8
+      WHERE id = $1
+    `, [
+      cohortId,
+      data.name,
+      Number(data.moduleNumber),
+      data.startDate,
+      data.endDate,
+      data.meetingDay,
+      data.meetingTime,
+      data.timezone || 'America/New_York',
+    ]);
+    if (!rowCount) return null;
+    await setCohortMembers(cohortId, data.facilitatorIds, data.participantIds);
+    return (await listCohorts()).find(item => String(item.id) === String(cohortId)) || null;
+  }
+  const cohort = local.cohorts.find(item => String(item.id) === String(cohortId));
+  if (!cohort) return null;
+  Object.assign(cohort, {
+    name: data.name,
+    moduleNumber: Number(data.moduleNumber),
+    startDate: data.startDate,
+    endDate: data.endDate,
+    meetingDay: data.meetingDay,
+    meetingTime: data.meetingTime,
+    timezone: data.timezone || 'America/New_York',
+  });
+  saveLocal();
+  await setCohortMembers(cohortId, data.facilitatorIds, data.participantIds);
+  return (await listCohorts()).find(item => String(item.id) === String(cohortId)) || null;
+}
+
+async function listFacilitatorCohorts(userId) {
+  const cohorts = await listCohorts();
+  return cohorts.filter(cohort =>
+    cohort.facilitators.some(user => String(user.id) === String(userId))
+  );
 }
 
 // ─── Responses ────────────────────────────────────────────────────────────────
@@ -214,6 +454,13 @@ module.exports = {
   createUser,
   listUsers,
   setUserPassword,
+  setUserAdmin,
+  setUserFacilitator,
+  deleteUser,
+  listCohorts,
+  createCohort,
+  updateCohort,
+  listFacilitatorCohorts,
   getResponses,
   setResponse,
   getProgress,

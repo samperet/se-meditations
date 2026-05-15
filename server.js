@@ -35,6 +35,7 @@ async function authMiddleware(req, res, next) {
       name: dbUser.name,
       email: dbUser.email,
       isAdmin: !!dbUser.isAdmin,
+      isFacilitator: !!dbUser.isFacilitator,
     };
     next();
   } catch (err) {
@@ -48,6 +49,52 @@ function adminMiddleware(req, res, next) {
   next();
 }
 
+function cohortManagerMiddleware(req, res, next) {
+  if (!req.user?.isAdmin && !req.user?.isFacilitator) {
+    return res.status(403).json({ error: 'Facilitator access required.' });
+  }
+  next();
+}
+
+function cleanIdList(value) {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(value.map(id => Number(id)).filter(Number.isFinite))];
+}
+
+function parseCohortBody(body) {
+  const moduleNumber = Number(body.moduleNumber);
+  const data = {
+    name: body.name?.trim(),
+    moduleNumber,
+    startDate: body.startDate,
+    endDate: body.endDate,
+    meetingDay: body.meetingDay?.trim(),
+    meetingTime: body.meetingTime?.trim(),
+    timezone: body.timezone?.trim() || 'America/New_York',
+    facilitatorIds: cleanIdList(body.facilitatorIds),
+    participantIds: cleanIdList(body.participantIds),
+  };
+  if (!data.name) data.name = `Module ${moduleNumber} Cohort`;
+  if (!Number.isInteger(moduleNumber) || moduleNumber < 1 || moduleNumber > 4) {
+    throw Object.assign(new Error('Module must be 1, 2, 3, or 4.'), { status: 400 });
+  }
+  if (!data.startDate || !data.endDate || !data.meetingDay || !data.meetingTime) {
+    throw Object.assign(new Error('Dates, day, and time are required.'), { status: 400 });
+  }
+  return data;
+}
+
+async function keepOnlyFacilitatorUsers(data) {
+  const users = await db.listUsers();
+  const facilitatorIds = new Set(
+    users.filter(user => user.isFacilitator).map(user => String(user.id))
+  );
+  return {
+    ...data,
+    facilitatorIds: data.facilitatorIds.filter(id => facilitatorIds.has(String(id))),
+  };
+}
+
 // ─── Auth routes ─────────────────────────────────────────────────────────────
 
 app.post('/api/auth/register', async (req, res) => {
@@ -59,7 +106,7 @@ app.post('/api/auth/register', async (req, res) => {
   try {
     const hash = await bcrypt.hash(password, 10);
     const user = await db.createUser(name.trim(), email.trim().toLowerCase(), hash);
-    const payload = { id: user.id, name: user.name, email: user.email, isAdmin: !!user.isAdmin };
+    const payload = { id: user.id, name: user.name, email: user.email, isAdmin: !!user.isAdmin, isFacilitator: !!user.isFacilitator };
     const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '30d' });
     res.json({ token, user: payload });
   } catch (err) {
@@ -78,7 +125,7 @@ app.post('/api/auth/login', async (req, res) => {
     if (!user) return res.status(401).json({ error: 'No account found with that email.' });
     const valid = await bcrypt.compare(password, user.passwordHash);
     if (!valid) return res.status(401).json({ error: 'Incorrect password.' });
-    const payload = { id: user.id, name: user.name, email: user.email, isAdmin: !!user.isAdmin };
+    const payload = { id: user.id, name: user.name, email: user.email, isAdmin: !!user.isAdmin, isFacilitator: !!user.isFacilitator };
     const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '30d' });
     res.json({ token, user: payload });
   } catch (err) {
@@ -97,6 +144,7 @@ app.get('/api/admin/users', authMiddleware, adminMiddleware, async (req, res) =>
       name: user.name,
       email: user.email,
       isAdmin: !!user.isAdmin,
+      isFacilitator: !!user.isFacilitator,
       createdAt: user.createdAt,
     })));
   } catch (err) {
@@ -115,6 +163,129 @@ app.post('/api/admin/users/:id/reset-password', authMiddleware, adminMiddleware,
     const updated = await db.setUserPassword(req.params.id, hash);
     if (!updated) return res.status(404).json({ error: 'User not found.' });
     res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error. Please try again.' });
+  }
+});
+
+app.post('/api/admin/users/:id/make-admin', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const updated = await db.setUserAdmin(req.params.id, true);
+    if (!updated) return res.status(404).json({ error: 'User not found.' });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error. Please try again.' });
+  }
+});
+
+app.post('/api/admin/users/:id/make-facilitator', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const updated = await db.setUserFacilitator(req.params.id, true);
+    if (!updated) return res.status(404).json({ error: 'User not found.' });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error. Please try again.' });
+  }
+});
+
+app.delete('/api/admin/users/:id', authMiddleware, adminMiddleware, async (req, res) => {
+  if (String(req.params.id) === String(req.user.id)) {
+    return res.status(400).json({ error: 'You cannot delete your own account.' });
+  }
+  try {
+    const deleted = await db.deleteUser(req.params.id);
+    if (!deleted) return res.status(404).json({ error: 'User not found.' });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error. Please try again.' });
+  }
+});
+
+app.get('/api/cohort-manager/users', authMiddleware, cohortManagerMiddleware, async (req, res) => {
+  try {
+    const users = await db.listUsers();
+    res.json(users.map(user => ({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      isFacilitator: !!user.isFacilitator,
+    })));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error. Please try again.' });
+  }
+});
+
+app.post('/api/cohort-manager/cohorts', authMiddleware, cohortManagerMiddleware, async (req, res) => {
+  try {
+    const cohort = await db.createCohort(await keepOnlyFacilitatorUsers(parseCohortBody(req.body)));
+    res.json(cohort);
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Server error. Please try again.' });
+  }
+});
+
+app.get('/api/admin/cohorts', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    res.json(await db.listCohorts());
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error. Please try again.' });
+  }
+});
+
+app.post('/api/admin/cohorts', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const cohort = await db.createCohort(await keepOnlyFacilitatorUsers(parseCohortBody(req.body)));
+    res.json(cohort);
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Server error. Please try again.' });
+  }
+});
+
+app.put('/api/admin/cohorts/:id', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const cohort = await db.updateCohort(req.params.id, await keepOnlyFacilitatorUsers(parseCohortBody(req.body)));
+    if (!cohort) return res.status(404).json({ error: 'Cohort not found.' });
+    res.json(cohort);
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Server error. Please try again.' });
+  }
+});
+
+app.get('/api/cohorts', async (req, res) => {
+  try {
+    const cohorts = await db.listCohorts();
+    res.json(cohorts.map(cohort => ({
+      id: cohort.id,
+      name: cohort.name,
+      moduleNumber: cohort.moduleNumber,
+      startDate: cohort.startDate,
+      endDate: cohort.endDate,
+      meetingDay: cohort.meetingDay,
+      meetingTime: cohort.meetingTime,
+      timezone: cohort.timezone,
+      facilitators: cohort.facilitators.map(user => ({ name: user.name })),
+    })));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error. Please try again.' });
+  }
+});
+
+app.get('/api/my/cohorts', authMiddleware, async (req, res) => {
+  try {
+    res.json(await db.listFacilitatorCohorts(req.user.id));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error. Please try again.' });

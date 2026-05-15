@@ -495,9 +495,9 @@
     }
 
     .participant-card[data-tone="Speaker"].active {
-      background: linear-gradient(135deg, #c4854a, #b5733a);
+      background: linear-gradient(135deg, #d4956a, #c98558);
       border-color: transparent;
-      box-shadow: 0 2px 10px rgba(196,133,74,0.35);
+      box-shadow: 0 2px 10px rgba(212,149,106,0.35);
     }
 
     .participant-card[data-tone="Observer"].active {
@@ -864,7 +864,6 @@
   </div>
 
   <div class="timeline-section">
-    <div class="section-label">Session Timeline — drag to seek</div>
     <div class="timeline-wrap" id="tl-wrap">
       <div class="timeline-bar" id="tl-bar"></div>
       <div class="tl-cursor" id="tl-cursor" style="left:0"></div>
@@ -1292,6 +1291,22 @@ function buildTimeline() {
   const bar = document.getElementById('tl-bar');
   const markers = document.getElementById('tl-markers');
   const tooltip = document.getElementById('tl-tooltip');
+  
+  function showTimelineTooltip(clientX, clientY) {
+    const rect = bar.getBoundingClientRect();
+    const pct = (clientX - rect.left) / rect.width;
+    const t = Math.round(pct * TOTAL);
+    const p = PHASES.find(ph => t >= ph.start && t < ph.end) || PHASES[PHASES.length-1];
+    const dur = Math.round((p.end - p.start) / 60);
+    tooltip.textContent = `${p.name} (${p.round === 4 ? 'Final' : 'Round ' + p.round}) — ${dur} min`;
+    tooltip.style.display = 'block';
+    tooltip.style.left = (clientX + 12) + 'px';
+    tooltip.style.top = (clientY - 34) + 'px';
+  }
+
+  function hideTimelineTooltip() {
+    tooltip.style.display = 'none';
+  }
 
   PHASES.forEach(p => {
     const seg = document.createElement('div');
@@ -1300,20 +1315,6 @@ function buildTimeline() {
     seg.style.background = COLORS[p.type];
     bar.appendChild(seg);
   });
-
-  // Hover tooltips
-  bar.addEventListener('mousemove', e => {
-    const rect = bar.getBoundingClientRect();
-    const pct = (e.clientX - rect.left) / rect.width;
-    const t = Math.round(pct * TOTAL);
-    const p = PHASES.find(ph => t >= ph.start && t < ph.end) || PHASES[PHASES.length-1];
-    const dur = Math.round((p.end - p.start) / 60);
-    tooltip.textContent = `${p.name} (${p.round === 4 ? 'Final' : 'Round ' + p.round}) — ${dur} min`;
-    tooltip.style.display = 'block';
-    tooltip.style.left = (e.clientX + 12) + 'px';
-    tooltip.style.top = (e.clientY - 34) + 'px';
-  });
-  bar.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; });
 
   // Drag-to-seek
   function posToTime(e) {
@@ -1324,25 +1325,41 @@ function buildTimeline() {
 
   bar.addEventListener('mousedown', e => {
     e.preventDefault();
+    showTimelineTooltip(e.clientX, e.clientY);
     const startX = e.clientX;
     let dragging = false;
     const onMove = e => {
       e.preventDefault();
       if (!dragging && Math.abs(e.clientX - startX) < 4) return;
       dragging = true;
+      showTimelineTooltip(e.clientX, e.clientY);
       seekTo(posToTime(e), true);
     };
-    const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
+    const onUp = () => {
+      hideTimelineTooltip();
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
   });
 
   bar.addEventListener('touchstart', e => {
-    let dragged = false;
-    const onMove = e => { e.preventDefault(); dragged = true; seekTo(posToTime(e), true); };
-    const onEnd = () => { bar.removeEventListener('touchmove', onMove); bar.removeEventListener('touchend', onEnd); };
+    showTimelineTooltip(e.touches[0].clientX, e.touches[0].clientY);
+    const onMove = e => {
+      e.preventDefault();
+      showTimelineTooltip(e.touches[0].clientX, e.touches[0].clientY);
+      seekTo(posToTime(e), true);
+    };
+    const onEnd = () => {
+      hideTimelineTooltip();
+      bar.removeEventListener('touchmove', onMove);
+      bar.removeEventListener('touchend', onEnd);
+      bar.removeEventListener('touchcancel', onEnd);
+    };
     bar.addEventListener('touchmove', onMove, { passive: false });
     bar.addEventListener('touchend', onEnd);
+    bar.addEventListener('touchcancel', onEnd);
   }, { passive: true });
 
   // Round markers

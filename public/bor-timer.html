@@ -75,7 +75,7 @@
 
     .welcome-hero {
       text-align: center;
-      padding: 32px 0 28px;
+      padding: 32px 0 18px;
     }
 
     .welcome-icon {
@@ -90,7 +90,7 @@
       font-size: 34px;
       font-weight: 800;
       letter-spacing: -0.5px;
-      margin-bottom: 8px;
+      margin-bottom: 0;
     }
 
     .welcome-sub { font-size: 16px; color: var(--muted); margin-bottom: 4px; }
@@ -102,7 +102,7 @@
       padding: 22px 24px;
       width: 100%;
       max-width: 460px;
-      margin: 24px 0 32px;
+      margin: 18px 0 20px;
       box-shadow: 0 2px 16px rgba(0,0,0,0.07);
     }
 
@@ -113,6 +113,51 @@
       letter-spacing: 1px;
       color: var(--green);
       margin-bottom: 14px;
+    }
+
+    .participant-setup {
+      display: grid;
+      gap: 10px;
+    }
+
+    .name-fields {
+      display: grid;
+      gap: 12px;
+    }
+
+    .name-input {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 15px;
+      color: var(--text);
+      background: #fff;
+    }
+
+    .name-input:focus {
+      outline: none;
+      border-color: var(--green);
+      box-shadow: 0 0 0 3px rgba(124,152,133,0.16);
+    }
+
+    .setup-note {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .participant-setup .rotation-diagram {
+      margin: 2px auto 10px;
+    }
+
+    .rotation-diagram {
+      width: 80%;
+      display: block;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.55);
+      box-shadow: none;
+      margin: 4px auto 0;
     }
 
     .phase-legend { display: flex; flex-direction: column; gap: 10px; }
@@ -126,6 +171,21 @@
 
     .legend-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
     .legend-duration { margin-left: auto; font-size: 13px; color: var(--muted); }
+
+    .start-wrap {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      margin: 18px 0 20px;
+    }
+
+    .start-shell {
+      width: 100%;
+      max-width: 460px;
+      display: flex;
+      justify-content: center;
+      margin: 0;
+    }
 
     .btn-start {
       padding: 18px 52px;
@@ -182,27 +242,37 @@
       padding: 22px 20px 18px;
       text-align: center;
       border-bottom: 1px solid var(--border);
+      transition: background 0.25s ease;
     }
 
     .round-label {
-      font-size: 12px;
-      font-weight: 700;
+      display: none;
+    }
+
+    .current-round-name {
+      font-size: clamp(16px, 4vw, 20px);
+      font-weight: 500;
+      letter-spacing: 1.6px;
+      line-height: 1.15;
+      margin-bottom: 10px;
+      color: white;
       text-transform: uppercase;
-      letter-spacing: 1px;
-      color: var(--muted);
-      margin-bottom: 8px;
     }
 
     .phase-badge {
-      display: inline-block;
-      padding: 4px 16px;
-      border-radius: 100px;
-      font-size: 11px;
-      font-weight: 700;
+      display: block;
+      padding: 0;
+      font-size: clamp(18px, 5vw, 28px);
+      font-weight: 800;
       color: white;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 12px;
+      letter-spacing: 0.8px;
+      line-height: 1;
+      margin-bottom: 14px;
+    }
+
+    .round-meta {
+      display: none;
     }
 
     .countdown {
@@ -213,19 +283,10 @@
       margin-bottom: 6px;
       font-variant-numeric: tabular-nums;
       transition: color 0.4s;
+      color: white;
     }
 
-    .countdown-sub { font-size: 13px; color: var(--muted); margin-bottom: 10px; }
-
-    .elapsed-pill {
-      display: inline-block;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 100px;
-      padding: 4px 14px;
-      font-size: 13px;
-      color: var(--muted);
-    }
+    .countdown-sub { font-size: 13px; color: rgba(255,255,255,0.9); margin-bottom: 10px; }
 
     /* Controls */
     .timer-controls {
@@ -274,9 +335,9 @@
 
     .btn-next-phase {
       padding: 12px 20px;
-      background: transparent;
-      color: #1d6083;
-      border: 1.5px solid #1d6083;
+      background: #86b9de;
+      color: white;
+      border: 1.5px solid #86b9de;
       border-radius: 100px;
       font-size: 14px;
       font-weight: 600;
@@ -285,7 +346,7 @@
       white-space: nowrap;
     }
 
-    .btn-next-phase:hover { background: #e3edf4; }
+    .btn-next-phase:hover { background: #78adcf; border-color: #78adcf; }
     .btn-next-phase:active { transform: scale(0.97); }
 
     /* Timeline */
@@ -370,87 +431,116 @@
       white-space: nowrap;
     }
 
-    /* Role tabs */
-    .tabs-section {
-      padding: 12px 14px;
+    /* Participants */
+    .participants-section {
+      padding: 6px 14px 8px;
       background: var(--bg);
       border-bottom: 1px solid var(--border);
     }
 
-    .role-tabs { display: flex; gap: 8px; }
+    .participants-header {
+      display: none;
+    }
 
-    .role-tab {
-      flex: 1;
-      padding: 12px 6px;
-      border-radius: 10px;
+    .participants-hint {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .participants-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .participant-card {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 14px;
       border: 1.5px solid;
       cursor: pointer;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 3px;
+      gap: 2px;
       transition: all 0.15s;
       -webkit-tap-highlight-color: transparent;
-      min-height: 60px;
+      min-height: 84px;
+      text-align: center;
     }
 
-    .role-tab[data-role="Listener"] {
+    .participant-card[data-tone="Listener"] {
       background: var(--listener-light);
       border-color: var(--listener-border);
     }
 
-    .role-tab[data-role="Speaker"] {
+    .participant-card[data-tone="Speaker"] {
       background: var(--speaker-light);
       border-color: var(--speaker-border);
     }
 
-    .role-tab[data-role="Observer"] {
+    .participant-card[data-tone="Observer"] {
       background: var(--observer-light);
       border-color: var(--observer-border);
     }
 
-    .role-tab[data-role="Listener"].active {
+    .participant-card[data-tone="Listener"].active {
       background: linear-gradient(135deg, #5b8fc2, #4a7db0);
       border-color: transparent;
       box-shadow: 0 2px 10px rgba(91,143,194,0.35);
     }
 
-    .role-tab[data-role="Speaker"].active {
+    .participant-card[data-tone="Speaker"].active {
       background: linear-gradient(135deg, #c4854a, #b5733a);
       border-color: transparent;
       box-shadow: 0 2px 10px rgba(196,133,74,0.35);
     }
 
-    .role-tab[data-role="Observer"].active {
+    .participant-card[data-tone="Observer"].active {
       background: linear-gradient(135deg, #9b87b3, #8a76a2);
       border-color: transparent;
       box-shadow: 0 2px 10px rgba(155,135,179,0.35);
     }
 
-    .tab-name {
-      font-size: 14px;
+    .participant-slot {
+      font-size: 15px;
       font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--muted);
       display: block;
-      line-height: 1;
+      line-height: 1.15;
+      margin-bottom: 2px;
     }
 
-    .role-tab[data-role="Listener"] .tab-name { color: var(--listener); }
-    .role-tab[data-role="Speaker"]  .tab-name { color: var(--speaker); }
-    .role-tab[data-role="Observer"] .tab-name { color: var(--observer); }
-    .role-tab.active .tab-name { color: white; }
-
-    .tab-sub {
-      font-size: 10px;
+    .participant-name {
+      font-size: 13px;
+      font-weight: 400;
       display: block;
-      line-height: 1;
-      min-height: 12px;
+      line-height: 1.2;
+      margin-top: 0;
     }
 
-    .role-tab[data-role="Listener"] .tab-sub { color: #7aabd4; }
-    .role-tab[data-role="Speaker"]  .tab-sub { color: #d4a070; }
-    .role-tab[data-role="Observer"] .tab-sub { color: #b5a3c8; }
-    .role-tab.active .tab-sub { color: rgba(255,255,255,0.78); }
+    .participant-card[data-tone="Listener"] .participant-name,
+    .participant-card[data-tone="Listener"] .participant-slot {
+      color: var(--listener);
+    }
+
+    .participant-card[data-tone="Speaker"] .participant-name,
+    .participant-card[data-tone="Speaker"] .participant-slot {
+      color: var(--speaker);
+    }
+
+    .participant-card[data-tone="Observer"] .participant-name,
+    .participant-card[data-tone="Observer"] .participant-slot {
+      color: var(--observer);
+    }
+
+    .participant-card.active .participant-slot,
+    .participant-card.active .participant-name {
+      color: white;
+    }
 
     /* Instructions */
     .instructions-section {
@@ -458,6 +548,15 @@
       background: var(--card);
       border-bottom: 1px solid var(--border);
       flex: 1;
+    }
+
+    .instructions-eyebrow {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      margin-bottom: 8px;
     }
 
     .instructions-title {
@@ -478,14 +577,6 @@
     }
 
     .instr-arrow { font-weight: 700; flex-shrink: 0; margin-top: 1px; }
-
-    .role-tab[data-role="Listener"] ~ * .instr-arrow { color: var(--listener); }
-
-    .instr-item.important {
-      background: linear-gradient(135deg, #f0f5f1, #e8f0e9);
-      border-left: 3px solid var(--green);
-      padding-left: 12px;
-    }
 
     /* Info bar */
     .info-bar {
@@ -551,9 +642,13 @@
 
   <div class="welcome-hero">
     <img src="/apple-touch-icon.png" class="welcome-icon" alt="">
-    <h1 class="welcome-title">BOR Timer</h1>
-    <p class="welcome-sub">Breakout Room Session Guide</p>
-    <p class="welcome-meta">65 minutes &nbsp;·&nbsp; 3 rounds &nbsp;·&nbsp; 3 rotating roles</p>
+    <h1 class="welcome-title">Breakout Room Timer</h1>
+  </div>
+
+  <div class="start-shell">
+    <div class="start-wrap">
+      <button class="btn-start" onclick="startSession()">Start Timer</button>
+    </div>
   </div>
 
   <div class="welcome-card">
@@ -582,7 +677,50 @@
     </div>
   </div>
 
-  <button class="btn-start" onclick="startSession()">Start Timer</button>
+  <div class="welcome-card">
+    <div class="participant-setup">
+      <img src="/OrderArrows.png" class="rotation-diagram" alt="Role rotation diagram showing Listener, Speaker, and Observer rotating each round">
+      <p class="setup-note">Participant order should be alphabetical by first name.</p>
+      <div class="name-fields">
+        <label for="participant-1-name" class="name-field">
+          <input
+            id="participant-1-name"
+            class="name-input"
+            type="text"
+            maxlength="32"
+            placeholder="Participant 1"
+            oninput="updateParticipantName('p1', this.value)"
+          >
+        </label>
+        <label for="participant-2-name" class="name-field">
+          <input
+            id="participant-2-name"
+            class="name-input"
+            type="text"
+            maxlength="32"
+            placeholder="Participant 2"
+            oninput="updateParticipantName('p2', this.value)"
+          >
+        </label>
+        <label for="participant-3-name" class="name-field">
+          <input
+            id="participant-3-name"
+            class="name-input"
+            type="text"
+            maxlength="32"
+            placeholder="Participant 3"
+            oninput="updateParticipantName('p3', this.value)"
+          >
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <div class="start-shell">
+    <div class="start-wrap">
+      <button class="btn-start" onclick="startSession()">Start Timer</button>
+    </div>
+  </div>
 </div>
 
 <!-- ─── Timer ────────────────────────────────────────────────────────────────── -->
@@ -594,11 +732,12 @@
   </header>
 
   <div class="timer-main">
-    <div class="round-label" id="round-label">Round 1 of 3</div>
+    <div class="round-label">Current Round</div>
+    <div class="current-round-name" id="round-name">Round 1</div>
+    <div class="round-meta" id="round-meta">20:00 total round length</div>
     <span class="phase-badge" id="phase-badge">Setup &amp; Greetings</span>
     <div class="countdown" id="countdown">02:00</div>
     <div class="countdown-sub">remaining in phase</div>
-    <span class="elapsed-pill" id="elapsed-pill">Total elapsed: 0:00 / 65:00</span>
   </div>
 
   <div class="timer-controls">
@@ -616,21 +755,16 @@
     </div>
   </div>
 
-  <div class="tabs-section">
-    <div class="role-tabs">
-      <button class="role-tab active" data-role="Listener" onclick="selectTab('Listener')">
-        <span class="tab-name">Listener</span>
-      </button>
-      <button class="role-tab" data-role="Speaker" onclick="selectTab('Speaker')">
-        <span class="tab-name">Speaker</span>
-      </button>
-      <button class="role-tab" data-role="Observer" onclick="selectTab('Observer')">
-        <span class="tab-name">Observer</span>
-      </button>
+  <div class="participants-section">
+    <div class="participants-header">
+      <div class="section-label">Current Roles</div>
+      <div class="participants-hint">Tap a role to view its prompts</div>
     </div>
+    <div class="participants-grid" id="participants-grid"></div>
   </div>
 
   <div class="instructions-section">
+    <div class="instructions-eyebrow" id="instr-eyebrow"></div>
     <div class="instructions-title" id="instr-title"></div>
     <div id="instr-list"></div>
   </div>
@@ -668,11 +802,23 @@ const COLORS  = { setup:'#6b9ec4', sharing:'#7C9885', feedback:'#d4956a', reflec
 const GONGS   = new Set([120,900,1080,1200,1320,2100,2280,2400,2520,3300,3480,3600]);
 const WARNINGS= new Set([780,1980,3180]);
 
-const ROTATIONS = {
-  1:{ Listener:'Listener', Speaker:'Speaker',  Observer:'Observer' },
-  2:{ Listener:'Speaker',  Speaker:'Observer', Observer:'Listener' },
-  3:{ Listener:'Observer', Speaker:'Listener', Observer:'Speaker'  },
-  4:{ Listener:'Listener', Speaker:'Speaker',  Observer:'Observer' },
+const PARTICIPANTS = [
+  { id:'p1', slot:'Participant 1' },
+  { id:'p2', slot:'Participant 2' },
+  { id:'p3', slot:'Participant 3' },
+];
+
+const ROUND_ASSIGNMENTS = {
+  1:{ p1:'Listener', p2:'Speaker',  p3:'Observer' },
+  2:{ p1:'Speaker',  p2:'Observer', p3:'Listener' },
+  3:{ p1:'Observer', p2:'Listener', p3:'Speaker'  },
+};
+
+const ROUND_DURATIONS = {
+  1: 1200,
+  2: 1200,
+  3: 1200,
+  4: 300,
 };
 
 const ROLE_ARROW_COLOR = { Listener:'#5b8fc2', Speaker:'#c4854a', Observer:'#9b87b3' };
@@ -799,13 +945,48 @@ const INSTRUCTIONS = {
 
 // ─── State ─────────────────────────────────────────────────────────────────────
 
-let elapsed = 0, running = false, activeTab = 'Listener';
+let elapsed = 0, running = false, activeRole = 'Listener', activeParticipantId = 'p1';
 let interval = null, audioCtx = null, lastGong = -1, lastWarn = -1, built = false;
+let participantNames = loadParticipantNames();
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
 const fmt = s => `${String(Math.floor(s/60)).padStart(2,'0')}:${String(Math.floor(s%60)).padStart(2,'0')}`;
 const getPhase = () => PHASES.find(p => elapsed >= p.start && elapsed < p.end) || PHASES[PHASES.length-1];
+const getRoundDuration = round => ROUND_DURATIONS[round] || 0;
+
+function getRoundName(phase) {
+  return phase.round === 4 ? 'Final Sharing' : `Round ${phase.round}`;
+}
+
+function loadParticipantNames() {
+  return {
+    p1: '',
+    p2: '',
+    p3: '',
+  };
+}
+
+function getStoredParticipantName(id) {
+  return (participantNames[id] || '').trim();
+}
+
+function getParticipantName(id) {
+  return getStoredParticipantName(id) || PARTICIPANTS.find(p => p.id === id)?.slot || id;
+}
+
+function getParticipantSlot(id) {
+  return PARTICIPANTS.find(p => p.id === id)?.slot || id;
+}
+
+function getAssignedRound(phase) {
+  return Math.min(phase.round, 3);
+}
+
+function getParticipantForRole(phase, role) {
+  const assignment = ROUND_ASSIGNMENTS[getAssignedRound(phase)] || ROUND_ASSIGNMENTS[1];
+  return Object.entries(assignment).find(([, assignedRole]) => assignedRole === role)?.[0] || 'p1';
+}
 
 // ─── Audio ─────────────────────────────────────────────────────────────────────
 
@@ -823,8 +1004,8 @@ function playGong() {
     o1.frequency.setValueAtTime(130, now); o2.frequency.setValueAtTime(195, now);
     o1.type = o2.type = 'sine';
     g.gain.setValueAtTime(0.3, now);
-    g.gain.exponentialRampToValueAtTime(0.01, now + 2);
-    o1.start(now); o2.start(now); o1.stop(now + 2); o2.stop(now + 2);
+    g.gain.exponentialRampToValueAtTime(0.01, now + 3);
+    o1.start(now); o2.start(now); o1.stop(now + 3); o2.stop(now + 3);
   } catch(e) {}
 }
 
@@ -877,10 +1058,16 @@ function resetTimer() {
   stopTimer(); elapsed = 0; lastGong = -1; lastWarn = -1; render();
 }
 
-function selectTab(role) {
-  activeTab = role;
-  document.querySelectorAll('.role-tab').forEach(t => t.classList.toggle('active', t.dataset.role === role));
-  renderInstructions();
+function selectRole(role) {
+  activeRole = role;
+  activeParticipantId = null;
+  render();
+}
+
+function updateParticipantName(participantId, value) {
+  participantNames[participantId] = value.trim();
+  syncParticipantInputs();
+  render();
 }
 
 // ─── Render ────────────────────────────────────────────────────────────────────
@@ -890,18 +1077,17 @@ function render() {
   const color = COLORS[phase.type];
   const remaining = Math.max(0, phase.end - elapsed);
   const round = phase.round;
-  const rot = ROTATIONS[round] || ROTATIONS[1];
+  const phaseMinutes = Math.round((phase.end - phase.start) / 60);
 
-  document.getElementById('round-label').textContent =
-    round === 4 ? 'Final Sharing' : `Round ${round} of 3`;
-
+  const timerMain = document.querySelector('.timer-main');
+  timerMain.style.background = color;
+  timerMain.style.borderBottomColor = color;
   const badge = document.getElementById('phase-badge');
-  badge.textContent = phase.name; badge.style.background = color;
+  badge.textContent = `${phase.name} - ${phaseMinutes} min`;
+  document.getElementById('round-name').textContent = getRoundName(phase).toUpperCase();
 
   const cd = document.getElementById('countdown');
-  cd.textContent = fmt(remaining); cd.style.color = color;
-
-  document.getElementById('elapsed-pill').textContent = `Total elapsed: ${fmt(elapsed)} / 65:00`;
+  cd.textContent = fmt(remaining); cd.style.color = '#ffffff';
 
   const playBtn = document.getElementById('play-btn');
   playBtn.textContent = elapsed >= TOTAL ? 'Done' : running ? 'Pause' : 'Play';
@@ -918,22 +1104,68 @@ function render() {
   });
 
 
-  document.getElementById('info-bar').textContent = 'Sacred Engagement';
+  renderParticipants();
+  document.getElementById('info-bar').textContent = `Sacred Engagement ${new Date().getFullYear()}`;
 
   renderInstructions();
 }
 
+function renderParticipants() {
+  const phase = getPhase();
+  const grid = document.getElementById('participants-grid');
+  const roles = ['Listener', 'Speaker', 'Observer'];
+  const resolvedActiveRole = activeParticipantId
+    ? roles.find(role => getParticipantForRole(phase, role) === activeParticipantId) || activeRole
+    : activeRole;
+  activeRole = resolvedActiveRole;
+  grid.innerHTML = roles.map(role => {
+    const participantId = getParticipantForRole(phase, role);
+    const name = getParticipantName(participantId);
+    return `
+      <button
+        class="participant-card ${resolvedActiveRole === role ? 'active' : ''}"
+        data-tone="${role}"
+        onclick="selectParticipantCard('${participantId}', '${role}')"
+      >
+        <span class="participant-slot">${role}</span>
+        <span class="participant-name">${name}</span>
+      </button>
+    `;
+  }).join('');
+}
+
+function selectParticipantCard(participantId, role) {
+  activeParticipantId = participantId;
+  activeRole = role;
+  render();
+}
+
 function renderInstructions() {
   const phase = getPhase();
-  const data = INSTRUCTIONS[phase.type]?.[activeTab];
+  const followedRole = activeParticipantId
+    ? ['Listener', 'Speaker', 'Observer'].find(role => getParticipantForRole(phase, role) === activeParticipantId) || activeRole
+    : activeRole;
+  const instructionRole = phase.type === 'final' ? 'Listener' : followedRole;
+  const participantId = activeParticipantId || getParticipantForRole(phase, followedRole);
+  const displayRole = phase.type === 'final' ? 'All share' : activeRole;
+  const data = INSTRUCTIONS[phase.type]?.[instructionRole];
   if (!data) return;
-  const arrowColor = ROLE_ARROW_COLOR[activeTab];
+  const participantName = getParticipantName(participantId);
+  const arrowColor = phase.type === 'final' ? COLORS.final : ROLE_ARROW_COLOR[instructionRole];
+  document.getElementById('instr-eyebrow').textContent = `${participantName} · ${phase.type === 'final' ? 'All share' : followedRole}`;
   document.getElementById('instr-title').textContent = data.title;
   document.getElementById('instr-list').innerHTML = data.items.map(item => `
     <div class="instr-item ${item.imp ? 'important' : ''}">
       <span class="instr-arrow" style="color:${arrowColor}">&rarr;</span>
       <span>${item.t}</span>
     </div>`).join('');
+}
+
+function syncParticipantInputs() {
+  PARTICIPANTS.forEach((participant, index) => {
+    const input = document.getElementById(`participant-${index + 1}-name`);
+    if (input) input.value = getStoredParticipantName(participant.id) || '';
+  });
 }
 
 // ─── Timeline (with drag-to-seek) ──────────────────────────────────────────────
@@ -1009,22 +1241,28 @@ function buildTimeline() {
 // ─── Navigation ────────────────────────────────────────────────────────────────
 
 function startSession() {
+  window.scrollTo(0, 0);
   document.getElementById('welcome').style.display = 'none';
   document.getElementById('timer').classList.add('visible');
   buildTimeline();
-  // Auto-start with opening gong
-  ensureAudio();
-  playGong();
-  interval = setInterval(tick, 1000);
-  running = true;
+  if (!running && elapsed === 0) {
+    // Auto-start with opening gong only on first start
+    ensureAudio();
+    playGong();
+    interval = setInterval(tick, 1000);
+    running = true;
+  }
   render();
 }
 
 function goBack() {
-  stopTimer();
   document.getElementById('timer').classList.remove('visible');
   document.getElementById('welcome').style.display = 'flex';
+  window.scrollTo(0, 0);
 }
+
+syncParticipantInputs();
+render();
 </script>
 </body>
 </html>

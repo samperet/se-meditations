@@ -289,6 +289,23 @@ body {
 .user-menu-item:hover { background: var(--bg); }
 .user-menu-item.danger { color: #dc2626; }
 
+.user-menu-donate {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  color: #1d6083;
+  font-weight: 600;
+}
+
+.user-menu-donate:hover { background: #e3edf4; }
+
+.user-menu-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+}
+
 /* Main content area */
 .app-content {
   flex: 1;

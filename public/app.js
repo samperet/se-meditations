@@ -1417,12 +1417,48 @@ function renderProfile(me) {
   });
 }
 
+// Resize an image File client-side. Returns a JPEG Blob whose longest side
+// is at most `maxDim` px, encoded at the given quality. Keeps avatars small
+// (~50-150 KB) so they fit comfortably in the users.avatar_url column.
+async function resizeImageFile(file, maxDim = 512, quality = 0.85) {
+  const dataUrl = await new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result);
+    r.onerror = () => reject(new Error('Could not read file.'));
+    r.readAsDataURL(file);
+  });
+  const img = await new Promise((resolve, reject) => {
+    const i = new Image();
+    i.onload = () => resolve(i);
+    i.onerror = () => reject(new Error('Could not decode image.'));
+    i.src = dataUrl;
+  });
+  const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+  const w = Math.round(img.width * scale);
+  const h = Math.round(img.height * scale);
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(img, 0, 0, w, h);
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      blob => blob ? resolve(blob) : reject(new Error('Could not encode image.')),
+      'image/jpeg',
+      quality
+    );
+  });
+}
+
 async function uploadAvatar(input) {
   const file = input.files?.[0];
   if (!file) return;
-  const formData = new FormData();
-  formData.append('avatar', file);
+  // Reset the input so re-selecting the same file still fires onchange.
+  input.value = '';
   try {
+    const blob = await resizeImageFile(file, 512, 0.85);
+    const formData = new FormData();
+    formData.append('avatar', blob, 'avatar.jpg');
     const res = await fetch('/api/me/avatar', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${token}` },

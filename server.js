@@ -15,34 +15,18 @@ const AUDIO_BASE = path.join(__dirname, '..');
 const AUDIO_CDN = process.env.AUDIO_BASE_URL || null;
 
 // ─── Avatar uploads ─────────────────────────────────────────────────────────
-// Vercel's deployment filesystem is read-only (only /tmp is writable). Trying
-// to mkdir or write under public/ at runtime there throws EROFS and crashes
-// the whole serverless function. Detect that and either skip uploads entirely
-// or fall back to /tmp (where files won't persist across invocations).
-const IS_SERVERLESS = !!(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
-const UPLOADS_DIR = IS_SERVERLESS
-  ? '/tmp/uploads'
-  : path.join(__dirname, 'public', 'uploads');
-
-try {
-  if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
-} catch (err) {
-  console.warn('Could not create uploads dir:', UPLOADS_DIR, err.message);
-}
-
+// We store avatars as base64 data URLs in the users.avatar_url column rather
+// than as files on disk. This keeps things working on Vercel's read-only
+// serverless filesystem (only /tmp is writable, and even then files don't
+// persist across cold starts and aren't served by Express static).
+// The client resizes images to ~512px before upload, so each row stays small
+// (~50-150 KB).
 const avatarUpload = multer({
-  storage: multer.diskStorage({
-    destination: UPLOADS_DIR,
-    filename: (req, file, cb) => {
-      const ext = path.extname(file.originalname).toLowerCase() || '.jpg';
-      cb(null, `avatar-${req.user.id}-${Date.now()}${ext}`);
-    },
-  }),
-  limits: { fileSize: 2 * 1024 * 1024 }, // 2 MB
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 2 * 1024 * 1024 }, // 2 MB hard cap
   fileFilter: (req, file, cb) => {
-    const allowed = ['.jpg', '.jpeg', '.png', '.webp'];
-    const ext = path.extname(file.originalname).toLowerCase();
-    cb(null, allowed.includes(ext));
+    const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+    cb(null, allowed.includes(file.mimetype));
   },
 });
 
@@ -231,13 +215,10 @@ app.post('/api/me/avatar', authMiddleware, (req, res, next) => {
     }
     if (!req.file) return res.status(400).json({ error: 'No image provided.' });
     try {
-      const avatarUrl = `/uploads/${req.file.filename}`;
-      // Delete previous avatar file if any
-      const prev = await db.findUserById(req.user.id);
-      if (prev?.avatarUrl && prev.avatarUrl.startsWith('/uploads/')) {
-        const old = path.join(__dirname, 'public', prev.avatarUrl);
-        fs.unlink(old, () => {});
-      }
+      // Encode the in-memory upload as a base64 data URL and persist it on
+      // the user row. Self-contained, works on any filesystem.
+      const mime = req.file.mimetype || 'image/jpeg';
+      const avatarUrl = `data:${mime};base64,${req.file.buffer.toString('base64')}`;
       await db.updateProfile(req.user.id, { avatarUrl });
       res.json({ ok: true, avatarUrl });
     } catch (e) {

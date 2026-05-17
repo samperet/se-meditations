@@ -197,10 +197,66 @@ app.get('/api/me', authMiddleware, async (req, res) => {
 
 app.put('/api/me', authMiddleware, async (req, res) => {
   try {
-    const { bio } = req.body;
-    const user = await db.updateProfile(req.user.id, { bio: (bio ?? '').slice(0, 500) });
+    const { name, email, bio } = req.body;
+    const updates = {};
+
+    if (name !== undefined) {
+      const trimmed = String(name).trim();
+      if (trimmed.length < 1) return res.status(400).json({ error: 'Name cannot be empty.' });
+      if (trimmed.length > 80) return res.status(400).json({ error: 'Name is too long.' });
+      updates.name = trimmed;
+    }
+
+    if (email !== undefined) {
+      const normalized = String(email).trim().toLowerCase();
+      // Basic email shape check — keeping it permissive on purpose.
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) {
+        return res.status(400).json({ error: 'That email doesn’t look right.' });
+      }
+      // Reject collisions with other users.
+      const existing = await db.findUserByEmail(normalized);
+      if (existing && String(existing.id) !== String(req.user.id)) {
+        return res.status(409).json({ error: 'That email is already in use.' });
+      }
+      updates.email = normalized;
+    }
+
+    if (bio !== undefined) {
+      updates.bio = String(bio).slice(0, 500);
+    }
+
+    const user = await db.updateProfile(req.user.id, updates);
     if (!user) return res.status(404).json({ error: 'User not found.' });
-    res.json({ ok: true, bio: user.bio, avatarUrl: user.avatarUrl });
+    res.json({
+      ok: true,
+      name: user.name,
+      email: user.email,
+      bio: user.bio,
+      avatarUrl: user.avatarUrl,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+// Change password — requires current password.
+app.post('/api/me/password', authMiddleware, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body || {};
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'Both current and new password are required.' });
+    }
+    if (String(newPassword).length < 6) {
+      return res.status(400).json({ error: 'New password must be at least 6 characters.' });
+    }
+    const user = await db.findUserById(req.user.id);
+    if (!user) return res.status(404).json({ error: 'User not found.' });
+    const valid = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!valid) return res.status(401).json({ error: 'Current password is incorrect.' });
+    const hash = await bcrypt.hash(newPassword, 10);
+    await db.setUserPassword(req.user.id, hash);
+    res.json({ ok: true });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error.' });

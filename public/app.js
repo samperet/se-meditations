@@ -201,7 +201,7 @@ async function showApp() {
 
   // Keep account access as a menu icon; the user's name appears inside the menu.
   document.getElementById('user-btn').innerHTML = '<span aria-hidden="true"></span>';
-  document.getElementById('user-menu-name').textContent = currentUser?.name || '';
+  updateMenuProfile(currentUser);
   document.getElementById('admin-menu-item').style.display = currentUserIsAdmin() ? 'block' : 'none';
   refreshCohortMenuAccess();
 
@@ -554,21 +554,31 @@ function renderPublicCohortCard(cohort) {
   `;
 }
 
+// Cohort lists used to gate dedicated menu items; those items now live inside
+// the My Profile page. We still fetch facilitator cohorts so `myCohorts` is
+// populated for any other consumers (e.g. the facilitator cohort editor).
 async function refreshCohortMenuAccess() {
   if (!token) return;
   try {
-    const [facilitatorCohorts, enrollments] = await Promise.all([
-      api('GET', '/api/my/cohorts'),
-      api('GET', '/api/my/enrollments').catch(() => []),
-    ]);
-    myCohorts = facilitatorCohorts;
-    document.getElementById('cohorts-menu-item').style.display =
-      currentUserCanManageCohorts() || myCohorts.length ? 'block' : 'none';
-    document.getElementById('my-cohorts-menu-item').style.display =
-      (enrollments && enrollments.length) ? 'block' : 'none';
+    myCohorts = await api('GET', '/api/my/cohorts');
   } catch {
-    document.getElementById('cohorts-menu-item').style.display = currentUserCanManageCohorts() ? 'block' : 'none';
-    document.getElementById('my-cohorts-menu-item').style.display = 'none';
+    myCohorts = [];
+  }
+}
+
+// Render the user's name + avatar in the top menu profile entry.
+function updateMenuProfile(user) {
+  const nameEl = document.getElementById('user-menu-name');
+  const avatarEl = document.getElementById('menu-avatar');
+  if (nameEl) nameEl.textContent = user?.name || 'My Profile';
+  if (avatarEl) {
+    if (user?.avatarUrl) {
+      avatarEl.style.backgroundImage = `url("${user.avatarUrl}")`;
+      avatarEl.textContent = '';
+    } else {
+      avatarEl.style.backgroundImage = '';
+      avatarEl.textContent = (user?.name || '?')[0].toUpperCase();
+    }
   }
 }
 
@@ -1372,14 +1382,20 @@ async function loadProfile() {
   setHeader('My Profile', true);
   setContent('<div class="loading-screen"><div class="spinner"></div></div>');
   try {
-    const me = await api('GET', '/api/me');
-    renderProfile(me);
+    // Pull profile + both cohort lists in parallel. Failures on cohort calls
+    // shouldn't break the page — just render those sections empty.
+    const [me, enrolledCohorts, facilitatorCohorts] = await Promise.all([
+      api('GET', '/api/me'),
+      api('GET', '/api/my/enrollments').catch(() => []),
+      api('GET', '/api/my/cohorts').catch(() => []),
+    ]);
+    renderProfile(me, enrolledCohorts || [], facilitatorCohorts || []);
   } catch (err) {
     setContent(`<div class="loading-screen"><p>Could not load profile.</p></div>`);
   }
 }
 
-function renderProfile(me) {
+function renderProfile(me, enrolledCohorts, facilitatorCohorts) {
   const avatarHtml = me.avatarUrl
     ? `<img src="${escAttr(me.avatarUrl)}" class="profile-avatar-img" alt="">`
     : `<div class="profile-avatar-placeholder">${escHtml((me.name || '?')[0].toUpperCase())}</div>`;
@@ -1387,18 +1403,61 @@ function renderProfile(me) {
     `<span class="profile-mod-badge">Module ${m} ✓</span>`
   ).join('') || '<span class="profile-mod-none">No modules completed yet</span>';
 
+  const enrolledHtml = enrolledCohorts.length
+    ? enrolledCohorts.map(c => renderProfileCohortRow(c)).join('')
+    : '<p class="profile-empty">You aren’t enrolled in any cohorts yet.</p>';
+
+  const facilitatorHtml = facilitatorCohorts.length
+    ? `
+      <div class="profile-section">
+        <label class="profile-label">Cohorts I facilitate</label>
+        <div class="profile-cohort-list">
+          ${facilitatorCohorts.map(c => renderProfileCohortRow(c)).join('')}
+        </div>
+      </div>
+    `
+    : '';
+
   setContent(`
     <div class="profile-page">
       <div class="profile-hero">
         <div class="profile-avatar-wrap" onclick="document.getElementById('avatar-input').click()">
           ${avatarHtml}
-          <div class="profile-avatar-edit">Edit</div>
+          <div class="profile-avatar-edit">Edit photo</div>
           <input type="file" id="avatar-input" accept="image/*" style="display:none" onchange="uploadAvatar(this)">
         </div>
-        <div class="profile-name">${escHtml(me.name)}</div>
-        <div class="profile-email">${escHtml(me.email)}</div>
         ${me.isFacilitator ? '<div class="profile-role-badge">Facilitator</div>' : ''}
         <div class="profile-mod-badges">${modBadges}</div>
+      </div>
+
+      <div class="profile-section">
+        <label class="profile-label">Account</label>
+        <div class="profile-field">
+          <label class="profile-field-label" for="profile-name">Name</label>
+          <input type="text" id="profile-name" class="profile-text-input" value="${escAttr(me.name || '')}" maxlength="80" autocomplete="name">
+        </div>
+        <div class="profile-field">
+          <label class="profile-field-label" for="profile-email">Email</label>
+          <input type="email" id="profile-email" class="profile-text-input" value="${escAttr(me.email || '')}" autocomplete="email">
+        </div>
+        <div class="profile-actions-row">
+          <button class="profile-save-btn" id="profile-account-save" onclick="saveAccountInfo()">Save</button>
+        </div>
+      </div>
+
+      <div class="profile-section">
+        <label class="profile-label">Password</label>
+        <div class="profile-field">
+          <label class="profile-field-label" for="profile-current-password">Current password</label>
+          <input type="password" id="profile-current-password" class="profile-text-input" autocomplete="current-password">
+        </div>
+        <div class="profile-field">
+          <label class="profile-field-label" for="profile-new-password">New password</label>
+          <input type="password" id="profile-new-password" class="profile-text-input" minlength="6" autocomplete="new-password" placeholder="At least 6 characters">
+        </div>
+        <div class="profile-actions-row">
+          <button class="profile-save-btn" id="profile-password-save" onclick="changePassword()">Change password</button>
+        </div>
       </div>
 
       <div class="profile-section">
@@ -1406,15 +1465,49 @@ function renderProfile(me) {
         <textarea class="profile-bio-input" id="profile-bio" maxlength="500" placeholder="Write a short bio that other participants can see…">${escHtml(me.bio || '')}</textarea>
         <div class="profile-bio-footer">
           <span class="profile-bio-count" id="bio-count">${(me.bio || '').length}/500</span>
-          <button class="profile-save-btn" id="profile-save-btn" onclick="saveProfile()">Save</button>
+          <button class="profile-save-btn" id="profile-save-btn" onclick="saveBio()">Save</button>
         </div>
       </div>
+
+      <div class="profile-section">
+        <label class="profile-label">My cohorts</label>
+        <div class="profile-cohort-list">${enrolledHtml}</div>
+      </div>
+
+      ${facilitatorHtml}
     </div>
   `);
-  // Wire up character count
+
+  // Wire up character count for bio
   document.getElementById('profile-bio')?.addEventListener('input', (e) => {
     document.getElementById('bio-count').textContent = `${e.target.value.length}/500`;
   });
+}
+
+// Compact cohort row shown on the profile page (read-only summary).
+function renderProfileCohortRow(c) {
+  const start = c.startDate ? formatDateShort(c.startDate) : '';
+  const end   = c.endDate   ? formatDateShort(c.endDate)   : '';
+  const dateRange = start && end ? `${start} – ${end}` : (start || end || '');
+  const meeting = c.meetingDay
+    ? `${c.meetingDay}s at ${c.meetingTime || ''}`
+    : '';
+  return `
+    <div class="profile-cohort-row">
+      <div class="profile-cohort-name">Module ${c.moduleNumber}: ${escHtml(c.name)}</div>
+      ${dateRange ? `<div class="profile-cohort-meta">${escHtml(dateRange)}</div>` : ''}
+      ${meeting ? `<div class="profile-cohort-meta">${escHtml(meeting)}</div>` : ''}
+    </div>
+  `;
+}
+
+function formatDateShort(dateStr) {
+  try {
+    const d = new Date(dateStr + 'T00:00:00');
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  } catch {
+    return dateStr;
+  }
 }
 
 // Resize an image File client-side. Returns a JPEG Blob whose longest side
@@ -1466,6 +1559,11 @@ async function uploadAvatar(input) {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Upload failed');
+    // Keep the menu avatar in sync with the new photo.
+    if (currentUser && data.avatarUrl) {
+      currentUser.avatarUrl = data.avatarUrl;
+      updateMenuProfile(currentUser);
+    }
     showToast('Photo updated');
     await loadProfile();
   } catch (err) {
@@ -1473,19 +1571,72 @@ async function uploadAvatar(input) {
   }
 }
 
-async function saveProfile() {
+async function saveBio() {
   const btn = document.getElementById('profile-save-btn');
   const bio = document.getElementById('profile-bio')?.value || '';
   btn.disabled = true;
   btn.textContent = 'Saving…';
   try {
     await api('PUT', '/api/me', { bio });
-    showToast('Profile saved');
+    showToast('Bio saved');
   } catch (err) {
-    showToast(err.message || 'Could not save profile.');
+    showToast(err.message || 'Could not save bio.');
   } finally {
     btn.disabled = false;
     btn.textContent = 'Save';
+  }
+}
+
+async function saveAccountInfo() {
+  const btn = document.getElementById('profile-account-save');
+  const name = document.getElementById('profile-name')?.value.trim() || '';
+  const email = document.getElementById('profile-email')?.value.trim() || '';
+  if (!name) { showToast('Name cannot be empty.'); return; }
+  if (!email) { showToast('Email cannot be empty.'); return; }
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+  try {
+    const res = await api('PUT', '/api/me', { name, email });
+    // Sync local cached user + menu so the new name shows up everywhere.
+    if (currentUser) {
+      currentUser.name = res.name ?? name;
+      currentUser.email = res.email ?? email;
+      try { localStorage.setItem('se_user', JSON.stringify(currentUser)); } catch {}
+    }
+    updateMenuProfile(currentUser);
+    showToast('Account updated');
+  } catch (err) {
+    showToast(err.message || 'Could not update account.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Save';
+  }
+}
+
+async function changePassword() {
+  const btn = document.getElementById('profile-password-save');
+  const currentPassword = document.getElementById('profile-current-password')?.value || '';
+  const newPassword = document.getElementById('profile-new-password')?.value || '';
+  if (!currentPassword || !newPassword) {
+    showToast('Enter both your current and new password.');
+    return;
+  }
+  if (newPassword.length < 6) {
+    showToast('New password must be at least 6 characters.');
+    return;
+  }
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+  try {
+    await api('POST', '/api/me/password', { currentPassword, newPassword });
+    document.getElementById('profile-current-password').value = '';
+    document.getElementById('profile-new-password').value = '';
+    showToast('Password updated');
+  } catch (err) {
+    showToast(err.message || 'Could not change password.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Change password';
   }
 }
 

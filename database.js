@@ -240,12 +240,14 @@ async function setUserFacilitator(userId, isFacilitator = true) {
   return true;
 }
 
-async function updateProfile(userId, { bio, avatarUrl }) {
+async function updateProfile(userId, { name, email, bio, avatarUrl } = {}) {
   if (pool) {
     const sets = [];
     const vals = [userId];
     let i = 2;
-    if (bio !== undefined) { sets.push(`bio = $${i++}`); vals.push(bio); }
+    if (name !== undefined)      { sets.push(`name = $${i++}`);       vals.push(name); }
+    if (email !== undefined)     { sets.push(`email = $${i++}`);      vals.push(email); }
+    if (bio !== undefined)       { sets.push(`bio = $${i++}`);        vals.push(bio); }
     if (avatarUrl !== undefined) { sets.push(`avatar_url = $${i++}`); vals.push(avatarUrl); }
     if (!sets.length) return findUserById(userId);
     await pool.query(`UPDATE users SET ${sets.join(', ')} WHERE id = $1`, vals);
@@ -253,7 +255,9 @@ async function updateProfile(userId, { bio, avatarUrl }) {
   }
   const user = local.users.find(u => String(u.id) === String(userId));
   if (!user) return null;
-  if (bio !== undefined) user.bio = bio;
+  if (name !== undefined)      user.name = name;
+  if (email !== undefined)     user.email = email;
+  if (bio !== undefined)       user.bio = bio;
   if (avatarUrl !== undefined) user.avatarUrl = avatarUrl;
   saveLocal();
   return normalizeUser(user);

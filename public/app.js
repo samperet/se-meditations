@@ -230,9 +230,6 @@ function goBack() {
     } else if (prev.type === 'home') {
       navHistory = [];
       loadHome();
-    } else if (prev.type === 'journal') {
-      navHistory = [];
-      loadHome();
     } else if (prev.type === 'my-cohorts') {
       loadMyCohorts();
     } else if (prev.type === 'profile') {
@@ -1247,108 +1244,6 @@ function renderFacilitatorCohortCard(cohort) {
       ${emails.length ? `<a class="email-cohort-btn" href="${escAttr(mailto)}">Email Participants</a>` : ''}
     </div>
   `;
-}
-
-async function openMyJournal() {
-  document.getElementById('user-menu').classList.remove('visible');
-  await loadMyJournal();
-}
-
-async function loadMyJournal() {
-  stopAudio();
-  currentLessonId = null;
-  navHistory = [{ type: 'home' }, { type: 'journal' }];
-  setHeader('My Journal', true);
-  setContent('<div class="loading-screen"><div class="spinner"></div></div>');
-  try {
-    // Load all lessons for both modules so we can resolve question text
-    const [responses, mod1Lessons, mod2Lessons] = await Promise.all([
-      api('GET', '/api/my/responses'),
-      api('GET', '/api/lessons?module=1').catch(() => []),
-      api('GET', '/api/lessons?module=2').catch(() => []),
-    ]);
-    const allL = [...(mod1Lessons || []), ...(mod2Lessons || [])];
-    renderMyJournal(responses, allL);
-  } catch (err) {
-    setContent(`<div class="loading-screen"><p>Could not load journal.</p></div>`);
-  }
-}
-
-function renderMyJournal(responses, allL) {
-  const lessonIds = Object.keys(responses);
-  const entriesWithContent = lessonIds.filter(lid => {
-    const r = responses[lid];
-    return Object.values(r).some(v => v && v.trim());
-  });
-
-  if (!entriesWithContent.length) {
-    setContent(`
-      <div class="journal-page">
-        <div class="journal-empty">
-          <div class="journal-empty-icon">✦</div>
-          <div class="journal-empty-title">Your journal is empty</div>
-          <div class="journal-empty-msg">Responses you write in lessons will appear here. Return to a lesson and start reflecting.</div>
-        </div>
-      </div>
-    `);
-    return;
-  }
-
-  // Group by module + section
-  const groups = {};
-  entriesWithContent.forEach(lid => {
-    const lesson = allL.find(l => l.id === lid);
-    const key = lesson ? `${lesson.moduleNumber}:${lesson.sectionId}` : '0:0';
-    if (!groups[key]) groups[key] = { lesson, entries: [] };
-    const r = responses[lid];
-    const questions = Object.entries(r)
-      .filter(([, v]) => v && v.trim())
-      .map(([qId, text]) => ({ qId, text }));
-    if (questions.length) groups[key].entries.push({ lid, lesson, questions });
-  });
-
-  const groupHtml = Object.values(groups).map(group => {
-    const lesson = group.entries[0]?.lesson;
-    const modNum = lesson ? Number(lesson.moduleNumber) : 0;
-    const sectionWord = modNum === 1 ? 'Week' : 'Section';
-    const sectionId = lesson?.sectionId || '';
-    const groupLabel = lesson ? `${sectionWord} ${sectionId}` : 'Other';
-
-    const entryHtml = group.entries.map(entry => {
-      const l = entry.lesson;
-      const lessonLabel = l
-        ? (modNum === 1 ? `Day ${l.lessonNumber}` : `Lesson ${l.lessonNumber}`)
-        : entry.lid;
-      const qHtml = entry.questions.map(({ text }) => `
-        <div class="journal-response">${escHtml(text)}</div>
-      `).join('');
-      return `
-        <div class="journal-entry">
-          <div class="journal-entry-title" onclick="loadLesson('${entry.lid}')">${escHtml(l?.title || entry.lid)} <span class="journal-entry-nav">→</span></div>
-          <div class="journal-entry-sub">${escHtml(lessonLabel)}</div>
-          ${qHtml}
-        </div>
-      `;
-    }).join('');
-
-    return `
-      <div class="journal-group">
-        <div class="journal-group-label">${escHtml(groupLabel)}</div>
-        ${entryHtml}
-      </div>
-    `;
-  }).join('');
-
-  setContent(`
-    <div class="journal-page">
-      <div class="journal-hero">
-        <div class="journal-eyebrow">Reflections</div>
-        <div class="journal-title">My Journal</div>
-        <div class="journal-sub">Your written responses from lessons, collected in one place.</div>
-      </div>
-      <div class="journal-body">${groupHtml}</div>
-    </div>
-  `);
 }
 
 // ─── My Cohorts (participant view) ─────────────────────────────────────────────

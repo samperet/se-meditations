@@ -695,11 +695,68 @@ function renderAdminUsers(users) {
         </div>
       </div>
 
-      <div class="admin-user-list">
+      <div class="admin-user-search">
+        <svg class="admin-user-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="7"/>
+          <path d="M20 20l-3.5-3.5"/>
+        </svg>
+        <input
+          type="search"
+          id="admin-user-search-input"
+          class="admin-user-search-input"
+          placeholder="Search users by name or email"
+          autocomplete="off"
+          oninput="filterAdminUsers(this.value)"
+        >
+      </div>
+
+      <div class="admin-user-list" id="admin-user-list">
         ${users.map(renderAdminUserCard).join('')}
       </div>
+      <div class="admin-user-empty" id="admin-user-empty" hidden>No users match that search.</div>
     </div>
   `);
+}
+
+// Live filter the user list by name or email. We rely on the data-search
+// attribute set on each card (lowercased "name\nemail") so the filter is
+// case-insensitive and matches either field.
+function filterAdminUsers(query) {
+  const q = (query || '').trim().toLowerCase();
+  const cards = document.querySelectorAll('#admin-user-list .admin-user-card');
+  let visible = 0;
+  cards.forEach(card => {
+    const hay = card.dataset.search || '';
+    const match = !q || hay.includes(q);
+    card.style.display = match ? '' : 'none';
+    if (match) visible++;
+  });
+  const empty = document.getElementById('admin-user-empty');
+  if (empty) empty.hidden = visible !== 0;
+}
+
+// Toggle a single user card open/closed. Buttons live inside .admin-user-actions
+// and are hidden by default via CSS; tapping the card header reveals them.
+function toggleUserCard(id) {
+  const card = document.getElementById(`admin-user-card-${id}`);
+  if (!card) return;
+  const willOpen = !card.classList.contains('expanded');
+  // Collapse any other open cards so only one is open at a time — keeps the
+  // page from turning into a wall of buttons.
+  document.querySelectorAll('#admin-user-list .admin-user-card.expanded').forEach(c => {
+    c.classList.remove('expanded');
+    const btn = c.querySelector('.admin-user-top');
+    if (btn) btn.setAttribute('aria-expanded', 'false');
+  });
+  // Hide any open password-reset forms when collapsing.
+  document.querySelectorAll('#admin-user-list .admin-reset-form:not([hidden])').forEach(f => {
+    f.hidden = true;
+  });
+  if (willOpen) {
+    card.classList.add('expanded');
+    const btn = card.querySelector('.admin-user-top');
+    if (btn) btn.setAttribute('aria-expanded', 'true');
+  }
 }
 
 // ─── Admin: Cohorts sub-view ─────────────────────────────────────────────────
@@ -774,25 +831,33 @@ function toggleAddCohortForm() {
 
 function renderAdminUserCard(user) {
   const createdAt = user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'Unknown';
+  const id = String(user.id);
+  // data-search holds a lowercased haystack the filter input matches against.
+  const haystack = `${(user.name || '').toLowerCase()}\n${(user.email || '').toLowerCase()}`;
   return `
-    <div class="admin-user-card">
-      <div class="admin-user-top">
-        <div>
+    <div class="admin-user-card" id="admin-user-card-${id}" data-search="${escAttr(haystack)}">
+      <button type="button" class="admin-user-top" onclick="toggleUserCard('${id}')" aria-expanded="false">
+        <div class="admin-user-top-text">
           <div class="admin-user-name">${escHtml(user.name)}</div>
           <div class="admin-user-email">${escHtml(user.email)}</div>
           <div class="admin-user-meta">Created ${escHtml(createdAt)}</div>
         </div>
-        <div class="admin-badges">
-          <div class="admin-badge ${user.isAdmin ? 'admin' : ''}">${user.isAdmin ? 'Admin' : 'Member'}</div>
-          ${user.isFacilitator ? '<div class="admin-badge facilitator">Facilitator</div>' : ''}
+        <div class="admin-user-top-right">
+          <div class="admin-badges">
+            <div class="admin-badge ${user.isAdmin ? 'admin' : ''}">${user.isAdmin ? 'Admin' : 'Member'}</div>
+            ${user.isFacilitator ? '<div class="admin-badge facilitator">Facilitator</div>' : ''}
+          </div>
+          <svg class="admin-user-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
         </div>
-      </div>
+      </button>
 
       <div class="admin-user-actions">
-        ${user.isAdmin ? '' : `<button class="admin-secondary-btn" onclick="makeUserAdmin('${String(user.id)}')">Make Admin</button>`}
-        ${user.isFacilitator ? '' : `<button class="admin-secondary-btn" onclick="makeUserFacilitator('${String(user.id)}')">Make Facilitator</button>`}
-        <button class="admin-secondary-btn" onclick="showPasswordReset('${String(user.id)}')">Reset Password</button>
-        <button class="admin-danger-btn" onclick="deleteUser('${String(user.id)}', '${escHtml(user.name)}')">Delete</button>
+        ${user.isAdmin ? '' : `<button class="admin-secondary-btn" onclick="makeUserAdmin('${id}')">Make Admin</button>`}
+        ${user.isFacilitator ? '' : `<button class="admin-secondary-btn" onclick="makeUserFacilitator('${id}')">Make Facilitator</button>`}
+        <button class="admin-secondary-btn" onclick="showPasswordReset('${id}')">Reset Password</button>
+        <button class="admin-danger-btn" onclick="deleteUser('${id}', '${escHtml(user.name)}')">Delete</button>
       </div>
 
       <form class="admin-reset-form" id="admin-reset-form-${String(user.id)}" hidden onsubmit="resetUserPassword(event, '${String(user.id)}')">

@@ -1541,6 +1541,61 @@ span.resource-title {
   margin-top: 14px;
 }
 
+/* Search bar above the user list. Sticky so it stays handy on long lists. */
+.admin-user-search {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  box-shadow: var(--shadow);
+}
+.admin-user-search-icon {
+  width: 18px;
+  height: 18px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+.admin-user-search-input {
+  flex: 1;
+  border: none;
+  background: none;
+  padding: 6px 0;
+  font: inherit;
+  font-size: 15px;
+  color: var(--text);
+  -webkit-appearance: none;
+  outline: none;
+}
+.admin-user-search-input::placeholder {
+  color: var(--text-muted);
+}
+/* Hide the WebKit "x" clear button so it doesn't clash with our icon. */
+.admin-user-search-input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  background: var(--text-muted);
+  -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M18 6L6 18M6 6l12 12' stroke='currentColor' stroke-width='2' stroke-linecap='round' fill='none'/></svg>") center/contain no-repeat;
+          mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M18 6L6 18M6 6l12 12' stroke='currentColor' stroke-width='2' stroke-linecap='round' fill='none'/></svg>") center/contain no-repeat;
+  cursor: pointer;
+}
+
+.admin-user-empty {
+  text-align: center;
+  padding: 24px;
+  color: var(--text-muted);
+  font-size: 14px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+}
+
 .admin-secondary-btn {
   border: 1px solid var(--border);
   border-radius: 999px;
@@ -1645,15 +1700,72 @@ span.resource-title {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
-  padding: 18px;
+  /* Padding moved onto the inner blocks so the whole header acts as a tap
+     target without leaving an awkward inner gutter. */
+  padding: 0;
+  overflow: hidden;
 }
 
+/* The header doubles as a button that toggles the action panel. Resetting
+   button defaults so it reads as a card row, not a chunky form button. */
 .admin-user-top {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   gap: 12px;
-  margin-bottom: 14px;
+  width: 100%;
+  padding: 16px 18px;
+  background: none;
+  border: none;
+  color: inherit;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.12s;
+}
+.admin-user-top:hover { background: var(--bg); }
+.admin-user-top:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+}
+
+.admin-user-top-text {
+  flex: 1;
+  min-width: 0;
+}
+.admin-user-top-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.admin-user-chevron {
+  width: 18px;
+  height: 18px;
+  color: var(--text-muted);
+  transition: transform 0.18s ease;
+}
+.admin-user-card.expanded .admin-user-chevron {
+  transform: rotate(180deg);
+}
+
+/* Actions and reset form are hidden until the card is expanded. */
+.admin-user-card:not(.expanded) .admin-user-actions,
+.admin-user-card:not(.expanded) .admin-reset-form {
+  display: none;
+}
+/* When expanded, give the actions a soft top border so they read as a
+   separate panel below the header row. */
+.admin-user-card.expanded .admin-user-actions {
+  border-top: 1px solid var(--border);
+  padding: 14px 18px;
+  margin-top: 0;
+  background: var(--bg);
+}
+.admin-user-card.expanded .admin-reset-form {
+  padding: 0 18px 16px;
+  background: var(--bg);
 }
 
 .admin-user-name {

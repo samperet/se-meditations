@@ -611,34 +611,13 @@ async function loadAdminPanel() {
 
 function renderAdminDashboard(users, cohorts) {
   const adminCount = users.filter(u => u.isAdmin).length;
-  const facilitatorCount = users.filter(u => u.isFacilitator).length;
   const activeCohorts = cohorts.filter(c => !c.endDate || new Date(c.endDate) >= new Date());
-  const totalParticipants = cohorts.reduce((sum, c) => sum + (c.participants?.length || 0), 0);
   setContent(`
     <div class="admin-page">
       <div class="admin-hero">
         <div class="admin-eyebrow">Admin</div>
         <div class="admin-title">Dashboard</div>
         <div class="admin-copy">Manage users, cohorts, and program settings.</div>
-      </div>
-
-      <div class="admin-summary">
-        <div class="admin-stat">
-          <div class="admin-stat-label">Users</div>
-          <div class="admin-stat-value">${users.length}</div>
-        </div>
-        <div class="admin-stat">
-          <div class="admin-stat-label">Facilitators</div>
-          <div class="admin-stat-value">${facilitatorCount}</div>
-        </div>
-        <div class="admin-stat">
-          <div class="admin-stat-label">Active Cohorts</div>
-          <div class="admin-stat-value">${activeCohorts.length}</div>
-        </div>
-        <div class="admin-stat">
-          <div class="admin-stat-label">Enrolled</div>
-          <div class="admin-stat-value">${totalParticipants}</div>
-        </div>
       </div>
 
       <div class="admin-nav-cards">
@@ -688,13 +667,34 @@ async function loadAdminUsers() {
 function renderAdminUsers(users) {
   const adminCount = users.filter(u => u.isAdmin).length;
   const facilitatorCount = users.filter(u => u.isFacilitator).length;
+  const memberCount = users.length - adminCount - facilitatorCount;
   setContent(`
     <div class="admin-page admin-page-wide">
       <div class="admin-hero">
         <div class="admin-eyebrow">Admin</div>
         <div class="admin-title">Users</div>
-        <div class="admin-copy">${users.length} registered users · ${adminCount} admins · ${facilitatorCount} facilitators</div>
+        <div class="admin-copy">Manage program participants, facilitators, and admins.</div>
       </div>
+
+      <div class="admin-summary">
+        <div class="admin-stat">
+          <div class="admin-stat-label">Total users</div>
+          <div class="admin-stat-value">${users.length}</div>
+        </div>
+        <div class="admin-stat">
+          <div class="admin-stat-label">Admins</div>
+          <div class="admin-stat-value">${adminCount}</div>
+        </div>
+        <div class="admin-stat">
+          <div class="admin-stat-label">Facilitators</div>
+          <div class="admin-stat-value">${facilitatorCount}</div>
+        </div>
+        <div class="admin-stat">
+          <div class="admin-stat-label">Members</div>
+          <div class="admin-stat-value">${memberCount < 0 ? 0 : memberCount}</div>
+        </div>
+      </div>
+
       <div class="admin-user-list">
         ${users.map(renderAdminUserCard).join('')}
       </div>
@@ -717,12 +717,35 @@ async function loadAdminCohorts() {
 }
 
 function renderAdminCohorts(cohorts) {
+  const now = new Date();
+  const activeCohorts = cohorts.filter(c => !c.endDate || new Date(c.endDate) >= now);
+  const upcomingCohorts = cohorts.filter(c => c.startDate && new Date(c.startDate) > now);
+  const totalParticipants = cohorts.reduce((sum, c) => sum + (c.participants?.length || 0), 0);
   setContent(`
     <div class="admin-page admin-page-wide">
       <div class="admin-hero">
         <div class="admin-eyebrow">Admin</div>
         <div class="admin-title">Cohorts</div>
         <div class="admin-copy">Create, edit, and manage cohorts.</div>
+      </div>
+
+      <div class="admin-summary">
+        <div class="admin-stat">
+          <div class="admin-stat-label">Total cohorts</div>
+          <div class="admin-stat-value">${cohorts.length}</div>
+        </div>
+        <div class="admin-stat">
+          <div class="admin-stat-label">Active</div>
+          <div class="admin-stat-value">${activeCohorts.length}</div>
+        </div>
+        <div class="admin-stat">
+          <div class="admin-stat-label">Upcoming</div>
+          <div class="admin-stat-value">${upcomingCohorts.length}</div>
+        </div>
+        <div class="admin-stat">
+          <div class="admin-stat-label">Enrolled</div>
+          <div class="admin-stat-value">${totalParticipants}</div>
+        </div>
       </div>
 
       <div class="admin-section-title">

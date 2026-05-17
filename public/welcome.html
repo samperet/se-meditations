@@ -2457,6 +2457,36 @@ function initTestimonialCarousel() {
   document.querySelectorAll('[data-testimonial-move]').forEach((button) => {
     button.addEventListener('click', () => moveTestimonial(Number(button.dataset.testimonialMove)));
   });
+  // Touch-swipe support. Threshold of 40px keeps light grazes from
+  // triggering, and we only act when the gesture is more horizontal than
+  // vertical so we don't hijack the user's vertical scroll.
+  document.querySelectorAll('[data-carousel="testimonials"]').forEach((shell) => {
+    let startX = 0;
+    let startY = 0;
+    let tracking = false;
+    const THRESHOLD = 40;
+
+    shell.addEventListener('touchstart', (e) => {
+      if (e.touches.length !== 1) { tracking = false; return; }
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      tracking = true;
+    }, { passive: true });
+
+    shell.addEventListener('touchend', (e) => {
+      if (!tracking) return;
+      tracking = false;
+      const t = e.changedTouches[0];
+      const dx = t.clientX - startX;
+      const dy = t.clientY - startY;
+      if (Math.abs(dx) < THRESHOLD) return;
+      if (Math.abs(dx) < Math.abs(dy)) return; // mostly vertical — let scroll happen
+      moveTestimonial(dx < 0 ? 1 : -1);
+    });
+
+    shell.addEventListener('touchcancel', () => { tracking = false; });
+  });
+
   showTestimonial(0);
 }
 

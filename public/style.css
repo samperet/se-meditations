@@ -1063,6 +1063,22 @@ span.resource-title {
   padding: 24px 20px 40px;
 }
 
+/* Wider container for Users and Cohorts sub-views, which contain lists and
+   forms that benefit from horizontal room on desktop. */
+.admin-page-wide {
+  max-width: 1200px;
+}
+.admin-page-wide .admin-hero {
+  /* Keep the hero copy itself comfortable to read even when the page is wide. */
+  padding: 24px 28px;
+}
+/* When the cohort form sits inside the wide page, keep it from spanning the
+   full width so it stays readable. */
+.admin-page-wide #add-cohort-form-wrap,
+.admin-page-wide .cohort-edit-form {
+  max-width: 760px;
+}
+
 .admin-hero {
   background: linear-gradient(160deg, #e3edf4 0%, #f0f5f1 60%, #f8f5f0 100%);
   border: 1px solid var(--border);
@@ -1178,8 +1194,13 @@ span.resource-title {
 }
 
 .admin-nav-card-icon {
-  font-size: 24px;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
+  color: var(--primary);
+  display: inline-flex;
+}
+.admin-nav-card-icon svg {
+  width: 28px;
+  height: 28px;
 }
 .admin-nav-card-label {
   font-size: 17px;

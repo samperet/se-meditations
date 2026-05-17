@@ -643,12 +643,26 @@ function renderAdminDashboard(users, cohorts) {
 
       <div class="admin-nav-cards">
         <button class="admin-nav-card" onclick="loadAdminUsers()">
-          <div class="admin-nav-card-icon">👤</div>
+          <div class="admin-nav-card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+          </div>
           <div class="admin-nav-card-label">Users</div>
           <div class="admin-nav-card-desc">${users.length} registered · ${adminCount} admins</div>
         </button>
         <button class="admin-nav-card" onclick="loadAdminCohorts()">
-          <div class="admin-nav-card-icon">📋</div>
+          <div class="admin-nav-card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3" y="4" width="18" height="18" rx="2"/>
+              <line x1="16" y1="2" x2="16" y2="6"/>
+              <line x1="8" y1="2" x2="8" y2="6"/>
+              <line x1="3" y1="10" x2="21" y2="10"/>
+            </svg>
+          </div>
           <div class="admin-nav-card-label">Cohorts</div>
           <div class="admin-nav-card-desc">${cohorts.length} total · ${activeCohorts.length} active</div>
         </button>
@@ -675,7 +689,7 @@ function renderAdminUsers(users) {
   const adminCount = users.filter(u => u.isAdmin).length;
   const facilitatorCount = users.filter(u => u.isFacilitator).length;
   setContent(`
-    <div class="admin-page">
+    <div class="admin-page admin-page-wide">
       <div class="admin-hero">
         <div class="admin-eyebrow">Admin</div>
         <div class="admin-title">Users</div>
@@ -704,7 +718,7 @@ async function loadAdminCohorts() {
 
 function renderAdminCohorts(cohorts) {
   setContent(`
-    <div class="admin-page">
+    <div class="admin-page admin-page-wide">
       <div class="admin-hero">
         <div class="admin-eyebrow">Admin</div>
         <div class="admin-title">Cohorts</div>

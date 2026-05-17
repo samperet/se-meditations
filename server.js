@@ -15,8 +15,20 @@ const AUDIO_BASE = path.join(__dirname, '..');
 const AUDIO_CDN = process.env.AUDIO_BASE_URL || null;
 
 // ─── Avatar uploads ─────────────────────────────────────────────────────────
-const UPLOADS_DIR = path.join(__dirname, 'public', 'uploads');
-if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+// Vercel's deployment filesystem is read-only (only /tmp is writable). Trying
+// to mkdir or write under public/ at runtime there throws EROFS and crashes
+// the whole serverless function. Detect that and either skip uploads entirely
+// or fall back to /tmp (where files won't persist across invocations).
+const IS_SERVERLESS = !!(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
+const UPLOADS_DIR = IS_SERVERLESS
+  ? '/tmp/uploads'
+  : path.join(__dirname, 'public', 'uploads');
+
+try {
+  if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+} catch (err) {
+  console.warn('Could not create uploads dir:', UPLOADS_DIR, err.message);
+}
 
 const avatarUpload = multer({
   storage: multer.diskStorage({

@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const multer = require('multer');
 const db = require('./database');
 const lessons = require('./lessons');
 
@@ -12,6 +13,26 @@ const JWT_SECRET = process.env.JWT_SECRET || 'se-mod2-meditations-2026';
 const AUDIO_BASE = path.join(__dirname, '..');
 // In production, set AUDIO_BASE_URL to your Cloudflare R2 public URL
 const AUDIO_CDN = process.env.AUDIO_BASE_URL || null;
+
+// ─── Avatar uploads ─────────────────────────────────────────────────────────
+const UPLOADS_DIR = path.join(__dirname, 'public', 'uploads');
+if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+
+const avatarUpload = multer({
+  storage: multer.diskStorage({
+    destination: UPLOADS_DIR,
+    filename: (req, file, cb) => {
+      const ext = path.extname(file.originalname).toLowerCase() || '.jpg';
+      cb(null, `avatar-${req.user.id}-${Date.now()}${ext}`);
+    },
+  }),
+  limits: { fileSize: 2 * 1024 * 1024 }, // 2 MB
+  fileFilter: (req, file, cb) => {
+    const allowed = ['.jpg', '.jpeg', '.png', '.webp'];
+    const ext = path.extname(file.originalname).toLowerCase();
+    cb(null, allowed.includes(ext));
+  },
+});
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
@@ -71,15 +92,13 @@ function parseCohortBody(body) {
     meetingDay: body.meetingDay?.trim(),
     meetingTime: body.meetingTime?.trim(),
     timezone: body.timezone?.trim() || 'America/New_York',
+    sessions: Array.isArray(body.sessions) ? body.sessions : [],
     facilitatorIds: cleanIdList(body.facilitatorIds),
     participantIds: cleanIdList(body.participantIds),
   };
   if (!data.name) data.name = `Module ${moduleNumber} Cohort`;
   if (!Number.isInteger(moduleNumber) || moduleNumber < 1 || moduleNumber > 4) {
     throw Object.assign(new Error('Module must be 1, 2, 3, or 4.'), { status: 400 });
-  }
-  if (!data.startDate || !data.endDate || !data.meetingDay || !data.meetingTime) {
-    throw Object.assign(new Error('Dates, day, and time are required.'), { status: 400 });
   }
   return data;
 }
@@ -98,7 +117,7 @@ async function keepOnlyFacilitatorUsers(data) {
 // ─── Auth routes ─────────────────────────────────────────────────────────────
 
 app.post('/api/auth/register', async (req, res) => {
-  const { name, email, password } = req.body;
+  const { name, email, password, cohortId } = req.body;
   if (!name?.trim() || !email?.trim() || !password)
     return res.status(400).json({ error: 'Name, email, and password are required.' });
   if (password.length < 6)
@@ -108,7 +127,31 @@ app.post('/api/auth/register', async (req, res) => {
     const user = await db.createUser(name.trim(), email.trim().toLowerCase(), hash);
     const payload = { id: user.id, name: user.name, email: user.email, isAdmin: !!user.isAdmin, isFacilitator: !!user.isFacilitator };
     const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '30d' });
-    res.json({ token, user: payload });
+
+    // If they registered through the welcome page with a cohort selected,
+    // enroll them as a participant in one step.
+    let enrolledCohort = null;
+    if (cohortId) {
+      try {
+        const cohorts = await db.listCohorts();
+        const cohort = cohorts.find(c => String(c.id) === String(cohortId));
+        if (cohort) {
+          await db.addCohortParticipant(cohort.id, user.id);
+          enrolledCohort = {
+            id: cohort.id,
+            name: cohort.name,
+            moduleNumber: cohort.moduleNumber,
+            startDate: cohort.startDate,
+            endDate: cohort.endDate,
+          };
+        }
+      } catch (e) {
+        console.error('Cohort enrollment failed during registration', e);
+        // Don't fail the registration — they can join later.
+      }
+    }
+
+    res.json({ token, user: payload, enrolledCohort });
   } catch (err) {
     if (err.code === 'DUPLICATE') return res.status(400).json({ error: 'An account with that email already exists.' });
     console.error(err);
@@ -131,6 +174,114 @@ app.post('/api/auth/login', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error. Please try again.' });
+  }
+});
+
+// ─── Profile ────────────────────────────────────────────────────────────────
+
+app.get('/api/me', authMiddleware, async (req, res) => {
+  try {
+    const user = await db.findUserById(req.user.id);
+    if (!user) return res.status(404).json({ error: 'User not found.' });
+    const completedModules = await db.getCompletedModules(req.user.id, lessons);
+    res.json({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      avatarUrl: user.avatarUrl,
+      bio: user.bio,
+      isFacilitator: !!user.isFacilitator,
+      completedModules,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+app.put('/api/me', authMiddleware, async (req, res) => {
+  try {
+    const { bio } = req.body;
+    const user = await db.updateProfile(req.user.id, { bio: (bio ?? '').slice(0, 500) });
+    if (!user) return res.status(404).json({ error: 'User not found.' });
+    res.json({ ok: true, bio: user.bio, avatarUrl: user.avatarUrl });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+app.post('/api/me/avatar', authMiddleware, (req, res, next) => {
+  avatarUpload.single('avatar')(req, res, async (err) => {
+    if (err) {
+      if (err.code === 'LIMIT_FILE_SIZE') return res.status(400).json({ error: 'Image must be under 2 MB.' });
+      return res.status(400).json({ error: 'Upload failed.' });
+    }
+    if (!req.file) return res.status(400).json({ error: 'No image provided.' });
+    try {
+      const avatarUrl = `/uploads/${req.file.filename}`;
+      // Delete previous avatar file if any
+      const prev = await db.findUserById(req.user.id);
+      if (prev?.avatarUrl && prev.avatarUrl.startsWith('/uploads/')) {
+        const old = path.join(__dirname, 'public', prev.avatarUrl);
+        fs.unlink(old, () => {});
+      }
+      await db.updateProfile(req.user.id, { avatarUrl });
+      res.json({ ok: true, avatarUrl });
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ error: 'Server error.' });
+    }
+  });
+});
+
+// ─── Public: Team (facilitators with profiles) ───────────────────────────────
+
+app.get('/api/team', async (req, res) => {
+  try {
+    const users = await db.listUsers();
+    const facilitators = users.filter(u => u.isFacilitator);
+    res.json(facilitators.map(u => ({
+      id: u.id,
+      name: u.name,
+      avatarUrl: u.avatarUrl,
+      bio: u.bio,
+      isFacilitator: true,
+    })));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+// ─── Alumni directory (requires Module 1 complete) ──────────────────────────
+
+app.get('/api/alumni', authMiddleware, async (req, res) => {
+  try {
+    // Verify the requesting user has completed Module 1
+    const reqCompleted = await db.getCompletedModules(req.user.id, lessons);
+    if (!reqCompleted.includes(1)) {
+      return res.status(403).json({ error: 'Complete Module 1 to access the alumni directory.' });
+    }
+    const users = await db.listUsers();
+    const alumni = [];
+    for (const u of users) {
+      const mods = await db.getCompletedModules(u.id, lessons);
+      if (mods.includes(1)) {
+        alumni.push({
+          id: u.id,
+          name: u.name,
+          avatarUrl: u.avatarUrl,
+          bio: u.bio,
+          isFacilitator: !!u.isFacilitator,
+          completedModules: mods,
+        });
+      }
+    }
+    res.json(alumni);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error.' });
   }
 });
 
@@ -208,7 +359,11 @@ app.delete('/api/admin/users/:id', authMiddleware, adminMiddleware, async (req, 
 app.get('/api/cohort-manager/users', authMiddleware, cohortManagerMiddleware, async (req, res) => {
   try {
     const users = await db.listUsers();
-    res.json(users.map(user => ({
+    const q = (req.query.q || '').toLowerCase().trim();
+    const filtered = q
+      ? users.filter(u => u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q))
+      : users;
+    res.json(filtered.slice(0, 20).map(user => ({
       id: user.id,
       name: user.name,
       email: user.email,
@@ -263,6 +418,16 @@ app.put('/api/admin/cohorts/:id', authMiddleware, adminMiddleware, async (req, r
   }
 });
 
+app.delete('/api/admin/cohorts/:id', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    await db.deleteCohort(req.params.id);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error. Please try again.' });
+  }
+});
+
 app.get('/api/cohorts', async (req, res) => {
   try {
     const cohorts = await db.listCohorts();
@@ -292,13 +457,52 @@ app.get('/api/my/cohorts', authMiddleware, async (req, res) => {
   }
 });
 
+// Cohorts the signed-in user is enrolled in as a participant.
+app.get('/api/my/enrollments', authMiddleware, async (req, res) => {
+  try {
+    res.json(await db.listParticipantCohorts(req.user.id));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error. Please try again.' });
+  }
+});
+
+// Self-enroll: signed-in user joins a cohort as a participant after agreeing
+// to the program commitments on the welcome page.
+app.post('/api/cohorts/:id/join', authMiddleware, async (req, res) => {
+  try {
+    const cohorts = await db.listCohorts();
+    const cohort = cohorts.find(c => String(c.id) === String(req.params.id));
+    if (!cohort) return res.status(404).json({ error: 'Cohort not found.' });
+    await db.addCohortParticipant(cohort.id, req.user.id);
+    res.json({
+      ok: true,
+      cohort: {
+        id: cohort.id,
+        name: cohort.name,
+        moduleNumber: cohort.moduleNumber,
+        startDate: cohort.startDate,
+        endDate: cohort.endDate,
+      },
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Could not join cohort. Please try again.' });
+  }
+});
+
 // ─── Lessons ─────────────────────────────────────────────────────────────────
 
 app.get('/api/lessons', authMiddleware, async (req, res) => {
   try {
     const completed = new Set(await db.getProgress(req.user.id));
-    res.json(lessons.map(l => ({
+    const moduleFilter = req.query.module ? Number(req.query.module) : null;
+    const filtered = moduleFilter
+      ? lessons.filter(l => Number(l.moduleNumber) === moduleFilter)
+      : lessons;
+    res.json(filtered.map(l => ({
       id: l.id, sectionId: l.sectionId, lessonNumber: l.lessonNumber,
+      moduleNumber: l.moduleNumber || 2,
       title: l.title, sectionTitle: l.sectionTitle,
       isCompanion: l.isCompanion, completed: completed.has(l.id)
     })));
@@ -324,6 +528,15 @@ app.put('/api/responses/:lessonId/:questionId', authMiddleware, async (req, res)
     await db.setResponse(req.user.id, req.params.lessonId, req.params.questionId, req.body.text ?? '');
     res.json({ ok: true });
   } catch (err) { console.error(err); res.status(500).json({ error: 'Server error' }); }
+});
+
+app.get('/api/my/responses', authMiddleware, async (req, res) => {
+  try {
+    res.json(await db.getAllResponses(req.user.id));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error.' });
+  }
 });
 
 // ─── Progress ────────────────────────────────────────────────────────────────

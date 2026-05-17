@@ -6,14 +6,17 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="SE Meditations">
+  <meta name="apple-mobile-web-app-title" content="Sacred Engagement">
   <meta name="theme-color" content="#1d6083">
-  <title>Sacred Engagement — Meditations</title>
+  <title>Sacred Engagement</title>
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
   <link rel="manifest" href="/site.webmanifest">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
@@ -21,12 +24,20 @@
 <!-- ─── Auth Screen ──────────────────────────────────────────────────────────── -->
 <div id="auth-screen">
 
+  <!-- Top-left "back to homepage" link -->
+  <a href="/welcome.html" class="auth-home-link" aria-label="Back to homepage">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="15 18 9 12 15 6"/>
+    </svg>
+    Homepage
+  </a>
+
   <div class="auth-page">
 
     <!-- Logo header -->
     <div class="auth-header">
       <img src="/logo.png" alt="Sacred Engagement" class="auth-header-logo">
-      <p class="auth-header-sub">Module 2 — Meditations</p>
     </div>
 
     <!-- Card -->
@@ -55,6 +66,9 @@
         <p class="auth-switch">
           New here?
           <button class="auth-switch-btn" onclick="showView('register')">Create an account</button>
+        </p>
+        <p class="auth-switch">
+          <button class="auth-switch-btn" onclick="window.location.href='/welcome.html'">View cohort dates</button>
         </p>
       </div>
 
@@ -85,6 +99,25 @@
           Already have an account?
           <button class="auth-switch-btn" onclick="showView('login')">Sign in</button>
         </p>
+        <p class="auth-switch">
+          <button class="auth-switch-btn" onclick="window.location.href='/welcome.html'">View cohort dates</button>
+        </p>
+      </div>
+
+      <!-- Cohort registration view -->
+      <div id="view-cohorts" style="display:none">
+        <h2 class="auth-heading">Cohort Registration</h2>
+        <div id="cohort-registration-list" class="cohort-registration-list">
+          <div class="spinner"></div>
+        </div>
+        <p class="auth-switch">
+          Ready to join?
+          <button class="auth-switch-btn" onclick="showView('register')">Create an account</button>
+        </p>
+        <p class="auth-switch">
+          Already registered?
+          <button class="auth-switch-btn" onclick="showView('login')">Sign in</button>
+        </p>
       </div>
 
     </div>
@@ -103,21 +136,91 @@
     </button>
     <h1 class="header-title" id="header-title">Meditations</h1>
     <div class="header-user">
-      <button class="header-user-btn" id="user-btn" onclick="toggleUserMenu()" aria-label="Account"></button>
+      <button class="header-user-btn" id="user-btn" aria-label="Account menu" onclick="toggleUserMenu(event)"><span aria-hidden="true"></span></button>
     </div>
   </header>
 
   <div class="user-menu" id="user-menu">
     <div class="user-menu-name" id="user-menu-name"></div>
-    <a class="user-menu-item" href="/bor-timer.html" style="text-decoration:none;color:var(--text);font-weight:700" onclick="document.getElementById('user-menu').classList.remove('visible')">
-      ⏱ BOR Timer
+
+    <button class="user-menu-item" id="admin-menu-item" style="display:none" onclick="openAdminPanel()">
+      <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+      <span>Admin</span>
+    </button>
+
+    <button class="user-menu-item" id="cohorts-menu-item" style="display:none" onclick="openFacilitatorCohorts()">
+      <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+        <circle cx="9" cy="7" r="4"/>
+        <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+      </svg>
+      <span>Cohorts</span>
+    </button>
+
+    <a class="user-menu-item" href="/bor-timer.html" onclick="document.getElementById('user-menu').classList.remove('visible')">
+      <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="13" r="8"/>
+        <path d="M12 9v4l2 2"/>
+        <path d="M9 2h6"/>
+      </svg>
+      <span>BOR Timer</span>
     </a>
-    <button class="user-menu-item" id="admin-menu-item" style="display:none" onclick="openAdminPanel()">Admin</button>
-    <a class="user-menu-item user-menu-donate" href="https://www.paypal.com/donate/?hosted_button_id=L2P56UX8FZ6M8" target="_blank" rel="noopener noreferrer" onclick="document.getElementById('user-menu').classList.remove('visible')">
-      <span>🙏</span> Donate
+
+    <button class="user-menu-item" onclick="openProfile()">
+      <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+        <circle cx="12" cy="7" r="4"/>
+      </svg>
+      <span>My Profile</span>
+    </button>
+
+    <button class="user-menu-item" onclick="openMyJournal()">
+      <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+      </svg>
+      <span>My Journal</span>
+    </button>
+
+    <button class="user-menu-item" id="my-cohorts-menu-item" style="display:none" onclick="openMyCohorts()">
+      <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+        <circle cx="9" cy="7" r="4"/>
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+      </svg>
+      <span>My Cohorts</span>
+    </button>
+
+    <button class="user-menu-item" onclick="openAlumniDirectory()">
+      <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+        <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+      </svg>
+      <span>Alumni Directory</span>
+    </button>
+
+    <a class="user-menu-item" href="https://www.paypal.com/donate/?hosted_button_id=L2P56UX8FZ6M8" target="_blank" rel="noopener noreferrer" onclick="document.getElementById('user-menu').classList.remove('visible')">
+      <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+      </svg>
+      <span>Donate</span>
     </a>
+
     <div class="user-menu-divider"></div>
-    <button class="user-menu-item danger" onclick="logout()">Sign Out</button>
+
+    <button class="user-menu-item danger" onclick="logout()">
+      <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+        <polyline points="16 17 21 12 16 7"/>
+        <line x1="21" y1="12" x2="9" y2="12"/>
+      </svg>
+      <span>Sign Out</span>
+    </button>
   </div>
 
   <main class="app-content" id="app-content">
@@ -128,6 +231,16 @@
 <!-- ─── Toast ───────────────────────────────────────────────────────────────── -->
 <div class="toast" id="toast"></div>
 
-<script src="/app.js"></script>
+<!-- ─── Section Complete Modal ──────────────────────────────────────────────── -->
+<div class="ceremony-overlay" id="ceremony-overlay" onclick="closeCeremony()">
+  <div class="ceremony-modal" onclick="event.stopPropagation()">
+    <div class="ceremony-icon">✦</div>
+    <div class="ceremony-title" id="ceremony-title">Section Complete</div>
+    <div class="ceremony-msg" id="ceremony-msg">You've completed all lessons in this section.</div>
+    <button class="ceremony-btn" onclick="closeCeremony()">Continue</button>
+  </div>
+</div>
+
+<script src="/app.js?v=hamburger-menu-2"></script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-module.exports = [
+const MODULE_2_LESSONS = [
 
   // ─── SECTION 1 ───────────────────────────────────────────────────────────────
 
@@ -689,4 +689,16 @@ module.exports = [
     ]
   }
 
+];
+
+// ════════════════════════════════════════════════════════════════════════════════
+// MODULE 1: WAKING UP
+// 6 weeks × 7 days = 42 lessons. Each "week" is a section, each "day" is a lesson.
+// ════════════════════════════════════════════════════════════════════════════════
+
+const MODULE_1_LESSONS = require('./lessons-mod1.js');
+
+module.exports = [
+  ...MODULE_1_LESSONS.map(l => ({ ...l, moduleNumber: 1 })),
+  ...MODULE_2_LESSONS.map(l => ({ ...l, moduleNumber: 2 })),
 ];

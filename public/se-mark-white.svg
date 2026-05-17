@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Sacred Engagement mark">
+  <g fill="none" stroke="#ffffff" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M105 38C92 12 59 2 30 18C5 31 -6 65 9 91" stroke-width="5" opacity=".9"/>
+    <path d="M44 29C52 23 69 24 81 30C88 34 88 39 81 44C71 52 54 51 44 45C37 41 37 34 44 29Z" stroke-width="4"/>
+    <path d="M31 52C40 44 76 42 88 52C96 59 91 76 80 80C64 85 33 83 25 74C19 68 22 58 31 52Z" stroke-width="5"/>
+    <path d="M18 84C30 75 84 72 96 85C105 96 94 109 74 111C49 114 22 110 13 101C8 96 10 90 18 84Z" stroke-width="5"/>
+    <path d="M8 99C13 91 26 91 34 99C40 105 37 113 27 116C17 119 7 114 5 107C4 104 5 101 8 99Z" stroke-width="4"/>
+  </g>
+</svg>

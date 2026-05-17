@@ -48,8 +48,10 @@ if (process.env.DATABASE_URL) {
       meeting_day TEXT NOT NULL,
       meeting_time TEXT NOT NULL,
       timezone TEXT NOT NULL DEFAULT 'America/New_York',
+      sessions JSONB NOT NULL DEFAULT '[]'::jsonb,
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
+    ALTER TABLE cohorts ADD COLUMN IF NOT EXISTS sessions JSONB NOT NULL DEFAULT '[]'::jsonb;
     CREATE TABLE IF NOT EXISTS cohort_members (
       id SERIAL PRIMARY KEY,
       cohort_id INTEGER REFERENCES cohorts(id) ON DELETE CASCADE,
@@ -60,6 +62,8 @@ if (process.env.DATABASE_URL) {
     );
     ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT FALSE;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS is_facilitator BOOLEAN NOT NULL DEFAULT FALSE;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url TEXT DEFAULT NULL;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT DEFAULT NULL;
   `)
     .then(() => pool.query('UPDATE users SET is_admin = TRUE WHERE LOWER(email) = LOWER($1)', [ADMIN_EMAIL]))
     .then(() => pool.query(`
@@ -111,6 +115,8 @@ function normalizeUser(row) {
     passwordHash: row.password_hash ?? row.passwordHash,
     isAdmin: row.is_admin ?? row.isAdmin ?? false,
     isFacilitator: row.is_facilitator ?? row.isFacilitator ?? false,
+    avatarUrl: row.avatar_url ?? row.avatarUrl ?? null,
+    bio: row.bio ?? null,
     createdAt: row.created_at ?? row.createdAt ?? null,
   };
 }
@@ -126,6 +132,7 @@ function normalizeCohort(row, members = []) {
     meetingDay: row.meeting_day ?? row.meetingDay,
     meetingTime: row.meeting_time ?? row.meetingTime,
     timezone: row.timezone || 'America/New_York',
+    sessions: Array.isArray(row.sessions) ? row.sessions : JSON.parse(row.sessions || '[]'),
     createdAt: row.created_at ?? row.createdAt ?? null,
     facilitators: members.filter(m => m.role === 'facilitator').map(m => m.user),
     participants: members.filter(m => m.role === 'participant').map(m => m.user),
@@ -233,6 +240,39 @@ async function setUserFacilitator(userId, isFacilitator = true) {
   return true;
 }
 
+async function updateProfile(userId, { bio, avatarUrl }) {
+  if (pool) {
+    const sets = [];
+    const vals = [userId];
+    let i = 2;
+    if (bio !== undefined) { sets.push(`bio = $${i++}`); vals.push(bio); }
+    if (avatarUrl !== undefined) { sets.push(`avatar_url = $${i++}`); vals.push(avatarUrl); }
+    if (!sets.length) return findUserById(userId);
+    await pool.query(`UPDATE users SET ${sets.join(', ')} WHERE id = $1`, vals);
+    return findUserById(userId);
+  }
+  const user = local.users.find(u => String(u.id) === String(userId));
+  if (!user) return null;
+  if (bio !== undefined) user.bio = bio;
+  if (avatarUrl !== undefined) user.avatarUrl = avatarUrl;
+  saveLocal();
+  return normalizeUser(user);
+}
+
+// Returns an array of module numbers the user has fully completed.
+// A module is complete when the user has finished every non-companion lesson.
+async function getCompletedModules(userId, allLessons) {
+  const completed = new Set(await getProgress(userId));
+  const mods = [];
+  for (const modNum of [1, 2, 3, 4]) {
+    const modLessons = allLessons.filter(l => Number(l.moduleNumber) === modNum && !l.isCompanion);
+    if (modLessons.length > 0 && modLessons.every(l => completed.has(l.id))) {
+      mods.push(modNum);
+    }
+  }
+  return mods;
+}
+
 async function deleteUser(userId) {
   if (pool) {
     const { rowCount } = await pool.query('DELETE FROM users WHERE id = $1', [userId]);
@@ -241,8 +281,9 @@ async function deleteUser(userId) {
   const idx = local.users.findIndex(u => String(u.id) === String(userId));
   if (idx === -1) return false;
   local.users.splice(idx, 1);
-  local.responses = (local.responses || []).filter(r => String(r.userId) !== String(userId));
-  local.progress  = (local.progress  || []).filter(p => String(p.userId) !== String(userId));
+  delete (local.responses || {})[String(userId)];
+  delete (local.progress  || {})[String(userId)];
+  local.cohortMembers = (local.cohortMembers || []).filter(m => String(m.userId) !== String(userId));
   saveLocal();
   return true;
 }
@@ -253,7 +294,7 @@ async function getCohortMembers(cohortIds = []) {
   if (cohortIds.length === 0) return {};
   if (pool) {
     const { rows } = await pool.query(`
-      SELECT cm.cohort_id, cm.role, u.id, u.name, u.email, u.is_admin, u.is_facilitator, u.created_at
+      SELECT cm.cohort_id, cm.role, u.id, u.name, u.email, u.is_admin, u.is_facilitator, u.avatar_url, u.bio, u.created_at
       FROM cohort_members cm
       JOIN users u ON u.id = cm.user_id
       WHERE cm.cohort_id = ANY($1::int[])
@@ -321,6 +362,7 @@ async function setCohortMembers(cohortId, facilitatorIds = [], participantIds = 
 }
 
 async function createCohort(data) {
+  const sessions = Array.isArray(data.sessions) ? data.sessions : [];
   const cohort = {
     name: data.name,
     moduleNumber: Number(data.moduleNumber),
@@ -329,13 +371,14 @@ async function createCohort(data) {
     meetingDay: data.meetingDay,
     meetingTime: data.meetingTime,
     timezone: data.timezone || 'America/New_York',
+    sessions,
   };
   if (pool) {
     const { rows } = await pool.query(`
-      INSERT INTO cohorts (name, module_number, start_date, end_date, meeting_day, meeting_time, timezone)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      INSERT INTO cohorts (name, module_number, start_date, end_date, meeting_day, meeting_time, timezone, sessions)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       RETURNING *
-    `, [cohort.name, cohort.moduleNumber, cohort.startDate, cohort.endDate, cohort.meetingDay, cohort.meetingTime, cohort.timezone]);
+    `, [cohort.name, cohort.moduleNumber, cohort.startDate, cohort.endDate, cohort.meetingDay, cohort.meetingTime, cohort.timezone, JSON.stringify(sessions)]);
     await setCohortMembers(rows[0].id, data.facilitatorIds, data.participantIds);
     return (await listCohorts()).find(item => String(item.id) === String(rows[0].id));
   }
@@ -347,11 +390,12 @@ async function createCohort(data) {
 }
 
 async function updateCohort(cohortId, data) {
+  const sessions = Array.isArray(data.sessions) ? data.sessions : [];
   if (pool) {
     const { rowCount } = await pool.query(`
       UPDATE cohorts
       SET name = $2, module_number = $3, start_date = $4, end_date = $5,
-          meeting_day = $6, meeting_time = $7, timezone = $8
+          meeting_day = $6, meeting_time = $7, timezone = $8, sessions = $9
       WHERE id = $1
     `, [
       cohortId,
@@ -362,6 +406,7 @@ async function updateCohort(cohortId, data) {
       data.meetingDay,
       data.meetingTime,
       data.timezone || 'America/New_York',
+      JSON.stringify(sessions),
     ]);
     if (!rowCount) return null;
     await setCohortMembers(cohortId, data.facilitatorIds, data.participantIds);
@@ -377,10 +422,22 @@ async function updateCohort(cohortId, data) {
     meetingDay: data.meetingDay,
     meetingTime: data.meetingTime,
     timezone: data.timezone || 'America/New_York',
+    sessions,
   });
   saveLocal();
   await setCohortMembers(cohortId, data.facilitatorIds, data.participantIds);
   return (await listCohorts()).find(item => String(item.id) === String(cohortId)) || null;
+}
+
+async function deleteCohort(cohortId) {
+  if (pool) {
+    await pool.query('DELETE FROM cohort_members WHERE cohort_id = $1', [cohortId]);
+    await pool.query('DELETE FROM cohorts WHERE id = $1', [cohortId]);
+    return;
+  }
+  local.cohortMembers = local.cohortMembers.filter(m => String(m.cohortId) !== String(cohortId));
+  local.cohorts = local.cohorts.filter(c => String(c.id) !== String(cohortId));
+  saveLocal();
 }
 
 async function listFacilitatorCohorts(userId) {
@@ -388,6 +445,41 @@ async function listFacilitatorCohorts(userId) {
   return cohorts.filter(cohort =>
     cohort.facilitators.some(user => String(user.id) === String(userId))
   );
+}
+
+async function listParticipantCohorts(userId) {
+  const cohorts = await listCohorts();
+  return cohorts.filter(cohort =>
+    cohort.participants.some(user => String(user.id) === String(userId))
+  );
+}
+
+// Add a single user to a cohort as a participant. Idempotent — re-joining is a no-op.
+async function addCohortParticipant(cohortId, userId) {
+  if (pool) {
+    await pool.query(`
+      INSERT INTO cohort_members (cohort_id, user_id, role)
+      VALUES ($1, $2, 'participant')
+      ON CONFLICT (cohort_id, user_id, role) DO NOTHING
+    `, [cohortId, userId]);
+    return (await listCohorts()).find(item => String(item.id) === String(cohortId)) || null;
+  }
+  const exists = local.cohortMembers.some(member =>
+    String(member.cohortId) === String(cohortId) &&
+    String(member.userId) === String(userId) &&
+    member.role === 'participant'
+  );
+  if (!exists) {
+    local.cohortMembers.push({
+      id: `${cohortId}:${userId}:participant`,
+      cohortId,
+      userId,
+      role: 'participant',
+      createdAt: new Date().toISOString(),
+    });
+    saveLocal();
+  }
+  return (await listCohorts()).find(item => String(item.id) === String(cohortId)) || null;
 }
 
 // ─── Responses ────────────────────────────────────────────────────────────────
@@ -419,6 +511,22 @@ async function setResponse(userId, lessonId, questionId, text) {
   if (!local.responses[userId][lessonId]) local.responses[userId][lessonId] = {};
   local.responses[userId][lessonId][questionId] = text;
   saveLocal();
+}
+
+async function getAllResponses(userId) {
+  if (pool) {
+    const { rows } = await pool.query(
+      'SELECT lesson_id, question_id, response_text FROM responses WHERE user_id = $1 ORDER BY updated_at ASC',
+      [userId]
+    );
+    const out = {};
+    rows.forEach(r => {
+      if (!out[r.lesson_id]) out[r.lesson_id] = {};
+      out[r.lesson_id][r.question_id] = r.response_text;
+    });
+    return out;
+  }
+  return local.responses[String(userId)] || {};
 }
 
 // ─── Progress ─────────────────────────────────────────────────────────────────
@@ -456,13 +564,19 @@ module.exports = {
   setUserPassword,
   setUserAdmin,
   setUserFacilitator,
+  updateProfile,
+  getCompletedModules,
   deleteUser,
   listCohorts,
   createCohort,
   updateCohort,
+  deleteCohort,
   listFacilitatorCohorts,
+  listParticipantCohorts,
+  addCohortParticipant,
   getResponses,
   setResponse,
+  getAllResponses,
   getProgress,
   markComplete,
 };

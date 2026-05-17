@@ -296,7 +296,7 @@
       padding: 118px var(--gutter) 124px;
       text-align: center;
       background:
-        linear-gradient(180deg, rgba(248, 245, 240, 0.24) 0%, rgba(248, 245, 240, 0.36) 48%, rgba(248, 245, 240, 0.78) 100%),
+        linear-gradient(180deg, rgba(248, 245, 240, 0.14) 0%, rgba(248, 245, 240, 0.22) 48%, rgba(248, 245, 240, 0.55) 100%),
         url('/calm-hero.png') center center / cover no-repeat;
       display: flex;
       align-items: center;
@@ -1669,9 +1669,25 @@
       .nav { display: none; }
       .hamburger { display: flex; align-items: center; justify-content: center; }
       .header-inner { height: 68px; }
-      .mobile-nav { top: 68px; }
 
-      .hero { padding: 64px var(--gutter) 80px; }
+      /* Full-viewport mobile drawer. Uses 100dvh so it tracks the visible
+         area when the URL bar shows/hides on iOS Safari, with 100vh as a
+         fallback for older engines. Covers the whole screen including the
+         header (close button inside the drawer still works). */
+      .mobile-nav {
+        top: 0;
+        height: 100vh;
+        height: 100dvh;
+        padding: 88px var(--gutter) 32px;
+      }
+
+      /* Hero fills the visible viewport on mobile so the imagery reads as
+         a true cover image rather than a thin band. */
+      .hero {
+        min-height: 100vh;
+        min-height: 100dvh;
+        padding: 96px var(--gutter) 64px;
+      }
       .pillars { grid-template-columns: 1fr; gap: 20px; }
       .modules { grid-template-columns: 1fr; }
       .section { padding: 64px 0; }

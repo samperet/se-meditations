@@ -506,6 +506,38 @@ app.get('/api/my/cohorts', authMiddleware, async (req, res) => {
   }
 });
 
+// Per-cohort module completion for each participant. Used by the facilitator
+// view to render the progress bar graph. Gated to facilitators of this cohort
+// (or admins) so participant progress isn't visible across cohorts.
+app.get('/api/my/cohorts/:id/progress', authMiddleware, async (req, res) => {
+  try {
+    const cohorts = await db.listCohorts();
+    const cohort = cohorts.find(c => String(c.id) === String(req.params.id));
+    if (!cohort) return res.status(404).json({ error: 'Cohort not found.' });
+
+    const isAdmin = !!req.user.isAdmin;
+    const isFacilitator = (cohort.facilitators || []).some(
+      f => String(f.id) === String(req.user.id)
+    );
+    if (!isAdmin && !isFacilitator) {
+      return res.status(403).json({ error: 'You do not facilitate this cohort.' });
+    }
+
+    const participants = cohort.participants || [];
+    const progress = await Promise.all(
+      participants.map(async (p) => ({
+        id: p.id,
+        name: p.name,
+        completedModules: await db.getCompletedModules(p.id, lessons),
+      }))
+    );
+    res.json(progress);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error. Please try again.' });
+  }
+});
+
 // Cohorts the signed-in user is enrolled in as a participant.
 app.get('/api/my/enrollments', authMiddleware, async (req, res) => {
   try {

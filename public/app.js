@@ -1318,7 +1318,16 @@ async function loadFacilitatorCohorts() {
   try {
     const cohorts = await api('GET', '/api/my/cohorts');
     myCohorts = cohorts;
-    renderFacilitatorCohorts(cohorts);
+    // For each cohort, fetch the participants' module-completion data in
+    // parallel. Failures are swallowed per-cohort so one bad response
+    // doesn't blank the whole page.
+    const progresses = await Promise.all(
+      cohorts.map(c =>
+        api('GET', `/api/my/cohorts/${encodeURIComponent(c.id)}/progress`).catch(() => [])
+      )
+    );
+    const cohortsWithProgress = cohorts.map((c, i) => ({ ...c, progress: progresses[i] || [] }));
+    renderFacilitatorCohorts(cohortsWithProgress);
   } catch (err) {
     setContent(`<div class="loading-screen"><p>${escHtml(err.message || 'Could not load cohorts.')}</p></div>`);
   }
@@ -1348,12 +1357,49 @@ function renderFacilitatorCohortCard(cohort) {
     <div class="facilitator-cohort-card">
       <div class="facilitator-cohort-title">Module ${cohort.moduleNumber}: ${escHtml(cohort.name)}</div>
       <div class="cohort-meta">${formatCohortDates(cohort)} · ${escHtml(cohort.meetingDay)} at ${escHtml(cohort.meetingTime)} ${escHtml(cohort.timezone)}</div>
+
+      ${renderCohortProgressChart(cohort.progress || [])}
+
       <div class="facilitator-participant-list">
         ${(cohort.participants || []).length ? cohort.participants.map(user => `
           <div class="facilitator-participant">${escHtml(user.name)} · ${escHtml(user.email)}</div>
         `).join('') : '<div class="facilitator-participant">No participants assigned yet.</div>'}
       </div>
       ${emails.length ? `<a class="email-cohort-btn" href="${escAttr(mailto)}">Email Participants</a>` : ''}
+    </div>
+  `;
+}
+
+// Horizontal bar chart of module completion (0-4) for each cohort participant.
+// Each row: name on the left, 4 segments in the middle (filled per module
+// completed), "n / 4" count on the right. Helps the facilitator see at a
+// glance who has done the prerequisite work coming into the cohort.
+function renderCohortProgressChart(progress) {
+  if (!progress.length) return '';
+  const TOTAL_MODULES = 4;
+  const rows = progress.map(p => {
+    const done = new Set(p.completedModules || []);
+    const segments = Array.from({ length: TOTAL_MODULES }, (_, i) => {
+      const modNum = i + 1;
+      const filled = done.has(modNum);
+      return `<span class="progress-seg ${filled ? 'on' : ''}" title="Module ${modNum}${filled ? ' — complete' : ''}" data-module="${modNum}"></span>`;
+    }).join('');
+    return `
+      <div class="progress-row">
+        <div class="progress-name">${escHtml(p.name)}</div>
+        <div class="progress-bar" role="img" aria-label="${done.size} of ${TOTAL_MODULES} modules complete">${segments}</div>
+        <div class="progress-count">${done.size} / ${TOTAL_MODULES}</div>
+      </div>
+    `;
+  }).join('');
+  return `
+    <div class="progress-chart">
+      <div class="progress-chart-label">Module completion</div>
+      <div class="progress-chart-body">${rows}</div>
+      <div class="progress-chart-legend">
+        <span class="progress-seg on"></span> Completed
+        <span class="progress-seg" style="margin-left:14px"></span> Not yet
+      </div>
     </div>
   `;
 }

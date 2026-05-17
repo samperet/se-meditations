@@ -1674,6 +1674,100 @@ span.resource-title {
   margin-top: 14px;
 }
 
+/* Per-participant module-completion chart shown on each facilitator cohort
+   card. Reads like a small dashboard: name on the left, four segments in the
+   middle (one per module), count on the right. Stacks cleanly on mobile. */
+.progress-chart {
+  margin-top: 16px;
+  padding: 14px 16px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.progress-chart-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.9px;
+  margin-bottom: 10px;
+}
+.progress-chart-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.progress-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) minmax(160px, 2fr) 48px;
+  align-items: center;
+  gap: 12px;
+}
+.progress-name {
+  font-size: 14px;
+  color: var(--text);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.progress-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  height: 14px;
+}
+.progress-seg {
+  display: inline-block;
+  width: 100%;
+  height: 100%;
+  background: var(--border);
+  border-radius: 3px;
+  transition: background 0.18s ease;
+}
+.progress-seg.on {
+  background: var(--primary);
+}
+.progress-count {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.progress-chart-legend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.progress-chart-legend .progress-seg {
+  width: 14px;
+  height: 10px;
+}
+
+@media (max-width: 560px) {
+  .progress-row {
+    grid-template-columns: 1fr 40px;
+    grid-template-rows: auto auto;
+    gap: 4px 12px;
+  }
+  .progress-name {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .progress-count {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .progress-bar {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}
+
 .facilitator-participant {
   padding: 10px 12px;
   border-radius: 8px;

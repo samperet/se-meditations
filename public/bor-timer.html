@@ -554,19 +554,79 @@
       flex: 1;
     }
 
-    .instructions-eyebrow {
+    /* Shared column structure (also used by the single .instr-single panel
+       during the "All share" final phase). */
+    .instr-column-header {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+    .instr-column-role {
       font-size: 11px;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 1px;
       color: var(--muted);
-      margin-bottom: 8px;
     }
-
-    .instructions-title {
+    .instr-column-name {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .instr-column-title {
       font-size: 16px;
       font-weight: 700;
       margin-bottom: 14px;
+      line-height: 1.3;
+    }
+    .instr-column-list { display: block; }
+
+    /* Tint each column header with its role color so the three columns
+       remain visually distinct on desktop. */
+    .instr-column.tone-listener .instr-column-role { color: var(--listener); }
+    .instr-column.tone-speaker  .instr-column-role { color: var(--speaker); }
+    .instr-column.tone-observer .instr-column-role { color: var(--observer); }
+
+    /* Mobile / narrow: only the active role's column shows. The grid is
+       single-column and inactive columns collapse out. */
+    .instr-multi {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+    .instr-multi .instr-column { display: none; }
+    .instr-multi .instr-column.active { display: block; }
+
+    /* Wide / desktop: all three columns visible side by side. The active
+       indicator becomes a subtle top border + lifted background so the
+       facilitator can still tell which role is currently "followed". */
+    @media (min-width: 900px) {
+      .instructions-section { padding: 26px 28px; }
+      .instr-multi {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 24px;
+      }
+      .instr-multi .instr-column { display: block; }
+      .instr-multi .instr-column {
+        padding: 18px 18px 14px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: var(--bg);
+        transition: box-shadow 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+      }
+      .instr-multi .instr-column.tone-listener { border-top: 3px solid var(--listener); }
+      .instr-multi .instr-column.tone-speaker  { border-top: 3px solid var(--speaker); }
+      .instr-multi .instr-column.tone-observer { border-top: 3px solid var(--observer); }
+      .instr-multi .instr-column.active {
+        background: var(--card);
+        box-shadow: 0 4px 18px rgba(0,0,0,0.07);
+        border-color: var(--border);
+        transform: translateY(-2px);
+      }
+      .instr-single {
+        max-width: 760px;
+        margin: 0 auto;
+      }
     }
 
     .instr-item {
@@ -748,6 +808,13 @@
     @media (min-width: 640px) {
       #timer { max-width: 640px; margin: 0 auto; box-shadow: 0 0 40px rgba(0,0,0,0.07); background: var(--card); }
     }
+
+    /* Once we're wide enough to render the three role columns side-by-side
+       (see .instr-multi grid above), widen the whole timer so the columns
+       have room to breathe. */
+    @media (min-width: 900px) {
+      #timer { max-width: 1100px; }
+    }
   </style>
 </head>
 <body>
@@ -880,8 +947,6 @@
   </div>
 
   <div class="instructions-section">
-    <div class="instructions-eyebrow" id="instr-eyebrow"></div>
-    <div class="instructions-title" id="instr-title"></div>
     <div id="instr-list"></div>
   </div>
 
@@ -1272,20 +1337,61 @@ function renderInstructions() {
   const followedRole = activeParticipantId
     ? ['Listener', 'Speaker', 'Observer'].find(role => getParticipantForRole(phase, role) === activeParticipantId) || activeRole
     : activeRole;
-  const instructionRole = phase.type === 'final' ? 'Listener' : followedRole;
-  const participantId = activeParticipantId || getParticipantForRole(phase, followedRole);
-  const displayRole = phase.type === 'final' ? 'All share' : activeRole;
-  const data = INSTRUCTIONS[phase.type]?.[instructionRole];
-  if (!data) return;
-  const participantName = getParticipantName(participantId);
-  const arrowColor = phase.type === 'final' ? COLORS.final : ROLE_ARROW_COLOR[instructionRole];
-  document.getElementById('instr-eyebrow').textContent = `${participantName} · ${phase.type === 'final' ? 'All share' : followedRole}`;
-  document.getElementById('instr-title').textContent = data.title;
-  document.getElementById('instr-list').innerHTML = data.items.map(item => `
-    <div class="instr-item ${item.imp ? 'important' : ''}">
-      <span class="instr-arrow" style="color:${arrowColor}">&rarr;</span>
-      <span>${item.t}</span>
-    </div>`).join('');
+  const list = document.getElementById('instr-list');
+
+  // Final "All share" phase — every participant does the same thing, so one
+  // full-width panel reads better than three identical columns.
+  if (phase.type === 'final') {
+    const data = INSTRUCTIONS.final?.Listener;
+    if (!data) { list.innerHTML = ''; return; }
+    const arrowColor = COLORS.final;
+    list.classList.remove('instr-multi');
+    list.innerHTML = `
+      <div class="instr-single">
+        <div class="instr-column-header"><div class="instr-column-role">All share</div></div>
+        <div class="instr-column-title">${data.title}</div>
+        <div class="instr-column-list">
+          ${data.items.map(item => `
+            <div class="instr-item ${item.imp ? 'important' : ''}">
+              <span class="instr-arrow" style="color:${arrowColor}">&rarr;</span>
+              <span>${item.t}</span>
+            </div>`).join('')}
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  // All other phases: three columns, one per role. On narrow viewports CSS
+  // collapses the grid and only the .active column is shown (the same tap-to-
+  // switch behavior we had before). On wide viewports all three render side
+  // by side so a facilitator can see every prompt at once.
+  list.classList.add('instr-multi');
+  list.innerHTML = ['Listener', 'Speaker', 'Observer'].map(role => {
+    const data = INSTRUCTIONS[phase.type]?.[role];
+    if (!data) return '';
+    const isActive = role === followedRole;
+    const participantId = getParticipantForRole(phase, role);
+    const participantName = getParticipantName(participantId);
+    const arrowColor = ROLE_ARROW_COLOR[role];
+    const toneClass = `tone-${role.toLowerCase()}`;
+    return `
+      <div class="instr-column ${toneClass} ${isActive ? 'active' : ''}" data-role="${role}">
+        <div class="instr-column-header">
+          <div class="instr-column-role">${role}</div>
+          ${participantName ? `<div class="instr-column-name">${participantName}</div>` : ''}
+        </div>
+        <div class="instr-column-title">${data.title}</div>
+        <div class="instr-column-list">
+          ${data.items.map(item => `
+            <div class="instr-item ${item.imp ? 'important' : ''}">
+              <span class="instr-arrow" style="color:${arrowColor}">&rarr;</span>
+              <span>${item.t}</span>
+            </div>`).join('')}
+        </div>
+      </div>
+    `;
+  }).join('');
 }
 
 function syncParticipantInputs() {

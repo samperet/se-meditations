@@ -1800,9 +1800,69 @@ function renderMemberDirectory(cohort) {
         <div class="directory-title">${escHtml(cohort.name)}</div>
         <div class="directory-sub">${allMembers.length} member${allMembers.length !== 1 ? 's' : ''}</div>
       </div>
+      ${renderCohortSchedule(cohort)}
       <div class="directory-list">${cards}</div>
     </div>
   `);
+}
+
+// Schedule block shown on the cohort detail (Member Directory) page. Lists
+// each session with date + time, highlights the next upcoming one, and
+// surfaces the join link when present.
+function renderCohortSchedule(cohort) {
+  const sessions = Array.isArray(cohort.sessions) ? cohort.sessions : [];
+  if (!sessions.length) {
+    // No explicit session list — fall back to the cohort-level meta line so
+    // the user still sees *something* about timing.
+    const meta = `${formatCohortDates(cohort)} · ${escHtml(cohort.meetingDay || '')} at ${escHtml(cohort.meetingTime || '')} ${escHtml(cohort.timezone || '')}`.trim();
+    return `
+      <div class="directory-schedule">
+        <div class="directory-schedule-label">Schedule</div>
+        <div class="directory-schedule-empty">${meta}</div>
+      </div>
+    `;
+  }
+  const next = getNextSession(cohort);
+  const tz = cohort.timezone || '';
+  const rows = sessions.map(s => {
+    const isNext = next && next.day === s.day && next.startTime === s.startTime;
+    const isPast = isSessionPast(s);
+    const cls = ['directory-schedule-row'];
+    if (isNext) cls.push('next');
+    if (isPast) cls.push('past');
+    const dateStr = formatDateOnly(s.day);
+    const timeStr = s.startTime ? `at ${escHtml(s.startTime)}${tz ? ' ' + escHtml(tz) : ''}` : '';
+    const durationStr = s.duration ? `· ${escHtml(s.duration)} min` : '';
+    const joinLink = (!isPast && s.meetingLink)
+      ? `<a class="directory-schedule-join" href="${escAttr(s.meetingLink)}" target="_blank" rel="noopener noreferrer">Join →</a>`
+      : '';
+    return `
+      <div class="${cls.join(' ')}">
+        <div class="directory-schedule-date">
+          ${escHtml(dateStr)}${isNext ? '<span class="directory-schedule-pill">Next</span>' : ''}
+        </div>
+        <div class="directory-schedule-time">${timeStr} ${durationStr}</div>
+        ${joinLink}
+      </div>
+    `;
+  }).join('');
+  return `
+    <div class="directory-schedule">
+      <div class="directory-schedule-label">Schedule</div>
+      <div class="directory-schedule-list">${rows}</div>
+    </div>
+  `;
+}
+
+// True if the session's end time (day + startTime + duration) is in the past.
+function isSessionPast(s) {
+  if (!s?.day) return false;
+  const [y, m, d] = String(s.day).split('-').map(Number);
+  if (!y || !m || !d) return false;
+  const [hh = 0, mm = 0] = String(s.startTime || '00:00').split(':').map(Number);
+  const start = new Date(y, m - 1, d, hh, mm);
+  const durMs = (Number(s.duration) || 0) * 60 * 1000;
+  return Date.now() > start.getTime() + durMs;
 }
 
 function renderMemberCard(user) {

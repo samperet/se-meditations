@@ -3099,6 +3099,108 @@ span.resource-title {
   gap: 12px;
 }
 
+/* Schedule block on the cohort detail page. Each row = one session with
+   date, time, and an optional Join link. The next upcoming session gets a
+   soft highlight + "Next" pill; past sessions fade. */
+.directory-schedule {
+  margin: 16px 20px 0;
+  padding: 16px 18px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+.directory-schedule-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.9px;
+  margin-bottom: 12px;
+}
+.directory-schedule-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.directory-schedule-row {
+  display: grid;
+  grid-template-columns: minmax(120px, auto) 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+}
+.directory-schedule-row + .directory-schedule-row {
+  border-top: 1px solid var(--border);
+  border-radius: 0;
+  padding-top: 12px;
+  margin-top: 0;
+}
+.directory-schedule-row.past {
+  opacity: 0.5;
+}
+.directory-schedule-row.next {
+  background: linear-gradient(135deg, var(--mist) 0%, var(--moss) 100%);
+  border: 1px solid rgba(29, 96, 131, 0.18);
+  padding: 12px;
+  margin: 2px 0;
+}
+.directory-schedule-row.next + .directory-schedule-row {
+  border-top: none;
+  padding-top: 10px;
+}
+.directory-schedule-date {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+}
+.directory-schedule-pill {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: white;
+  background: var(--primary);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+.directory-schedule-time {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.directory-schedule-join {
+  font-weight: 700;
+  color: var(--primary);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.directory-schedule-join:hover { text-decoration: underline; }
+.directory-schedule-empty {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+@media (max-width: 480px) {
+  .directory-schedule-row {
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto;
+    gap: 4px 12px;
+  }
+  .directory-schedule-date { grid-column: 1; grid-row: 1; }
+  .directory-schedule-join { grid-column: 2; grid-row: 1; }
+  .directory-schedule-time { grid-column: 1 / -1; grid-row: 2; }
+}
+
 .member-card {
   display: flex;
   gap: 14px;

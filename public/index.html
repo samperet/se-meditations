@@ -141,13 +141,13 @@
   </header>
 
   <div class="user-menu" id="user-menu">
-    <!-- Profile entry doubles as the signed-in user's name. -->
-    <button class="user-menu-item user-menu-profile" onclick="openProfile()">
-      <span class="menu-avatar" id="menu-avatar" aria-hidden="true"></span>
-      <span class="menu-profile-label" id="user-menu-name">My Profile</span>
+    <button class="user-menu-item" onclick="openProfile()">
+      <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+        <circle cx="12" cy="7" r="4"/>
+      </svg>
+      <span>My Profile</span>
     </button>
-
-    <div class="user-menu-divider"></div>
 
     <button class="user-menu-item" id="admin-menu-item" style="display:none" onclick="openAdminPanel()">
       <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">

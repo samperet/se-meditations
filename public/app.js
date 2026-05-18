@@ -199,9 +199,7 @@ async function showApp() {
   document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('app-screen').classList.add('visible');
 
-  // Keep account access as a menu icon; the user's name appears inside the menu.
   document.getElementById('user-btn').innerHTML = '<span aria-hidden="true"></span>';
-  updateMenuProfile(currentUser);
   document.getElementById('admin-menu-item').style.display = currentUserIsAdmin() ? 'block' : 'none';
   refreshCohortMenuAccess();
 
@@ -563,22 +561,6 @@ async function refreshCohortMenuAccess() {
     myCohorts = await api('GET', '/api/my/cohorts');
   } catch {
     myCohorts = [];
-  }
-}
-
-// Render the user's name + avatar in the top menu profile entry.
-function updateMenuProfile(user) {
-  const nameEl = document.getElementById('user-menu-name');
-  const avatarEl = document.getElementById('menu-avatar');
-  if (nameEl) nameEl.textContent = user?.name || 'My Profile';
-  if (avatarEl) {
-    if (user?.avatarUrl) {
-      avatarEl.style.backgroundImage = `url("${user.avatarUrl}")`;
-      avatarEl.textContent = '';
-    } else {
-      avatarEl.style.backgroundImage = '';
-      avatarEl.textContent = (user?.name || '?')[0].toUpperCase();
-    }
   }
 }
 
@@ -1707,10 +1689,8 @@ async function uploadAvatar(input) {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Upload failed');
-    // Keep the menu avatar in sync with the new photo.
     if (currentUser && data.avatarUrl) {
       currentUser.avatarUrl = data.avatarUrl;
-      updateMenuProfile(currentUser);
     }
     showToast('Photo updated');
     await loadProfile();
@@ -1751,7 +1731,6 @@ async function saveAccountInfo() {
       currentUser.email = res.email ?? email;
       try { localStorage.setItem('se_user', JSON.stringify(currentUser)); } catch {}
     }
-    updateMenuProfile(currentUser);
     showToast('Account updated');
   } catch (err) {
     showToast(err.message || 'Could not update account.');

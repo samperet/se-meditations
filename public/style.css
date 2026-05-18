@@ -332,40 +332,6 @@ body {
 
 .user-menu.visible { display: block; }
 
-/* Combined name + profile entry at the top of the menu. The name itself is
-   the click target — opens the My Profile page. */
-.user-menu-profile {
-  font-weight: 600;
-  font-size: 15px;
-  color: var(--text);
-  padding: 12px 14px;
-}
-
-.menu-avatar {
-  width: 32px;
-  height: 32px;
-  flex-shrink: 0;
-  border-radius: 50%;
-  background: var(--mist);
-  background-size: cover;
-  background-position: center;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--water);
-  text-transform: uppercase;
-}
-
-.menu-profile-label {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 /* Tap-friendly menu items: flex row with icon + label, no bold, generous padding.
    Min 44px height keeps it comfortable for fingers on touch devices. */
 .user-menu-item {

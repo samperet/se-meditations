@@ -87,6 +87,18 @@ body {
   padding: 0;
 }
 
+.auth-header-link {
+  display: inline-block;
+  text-decoration: none;
+  border-radius: 8px;
+  transition: opacity 0.15s;
+}
+.auth-header-link:hover { opacity: 0.75; }
+.auth-header-link:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 4px;
+}
+
 .auth-header-logo {
   width: 200px;
   height: auto;

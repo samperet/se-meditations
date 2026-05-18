@@ -10,6 +10,10 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <!-- Start fetching the hero as early as possible so it's ready by the time
+       CSS paints the .hero background. fetchpriority bumps it ahead of other
+       resources on browsers that support it. -->
+  <link rel="preload" as="image" href="/calm-hero.webp" type="image/webp" fetchpriority="high">
 
   <!-- ─── Typography ─────────────────────────────────────────────────────────── -->
 
@@ -295,12 +299,30 @@
       min-height: 560px;
       padding: 118px var(--gutter) 124px;
       text-align: center;
+      /* Three-layer background, top-to-bottom in CSS source order:
+         1) sand-coloured gradient that softens the top edge,
+         2) full-resolution WebP hero (loads from network),
+         3) inline base64 LQIP — a 40-px-wide WebP thumbnail (~150 bytes
+            decoded) that the browser paints instantly while layer 2 fetches.
+         Once the full image arrives it covers the LQIP layer with no flash.
+         The PNG fallback is for browsers without WebP support (none
+         significant in 2026, but kept in case). */
       background:
         linear-gradient(180deg, rgba(248, 245, 240, 0.14) 0%, rgba(248, 245, 240, 0.22) 48%, rgba(248, 245, 240, 0.55) 100%),
-        url('/calm-hero.png') center center / cover no-repeat;
+        url('/calm-hero.webp') center center / cover no-repeat,
+        url('data:image/webp;base64,UklGRpQAAABXRUJQVlA4IIgAAABwBQCdASooABQAPxFyrlEsJqQisBVdUYAiCWIAuwALN1Zm3Vjl5tfLTkrWL+pJwCbtpyTAAP6UPUiHfCcDrlYuMJt7C5LXwBZbrqrL6cghP3ISadMoco3n3/O5Vbq+gherOtmq/i9YqBV/IQliGhR5F8MU6LPHl0lp8UBa6IG1t/OjtqsGlqAA') center center / cover no-repeat;
       display: flex;
       align-items: center;
       justify-content: center;
+    }
+    /* PNG fallback for the rare browser without WebP support. Modern Chromium,
+       Safari 14+, Firefox 65+ all decode WebP, so this is largely defensive. */
+    @supports not (background-image: url("data:image/webp;base64,UklGRgQAAABXRUJQ")) {
+      .hero {
+        background:
+          linear-gradient(180deg, rgba(248, 245, 240, 0.14) 0%, rgba(248, 245, 240, 0.22) 48%, rgba(248, 245, 240, 0.55) 100%),
+          url('/calm-hero.png') center center / cover no-repeat;
+      }
     }
 
     .hero-inner {

@@ -71,43 +71,25 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 32px 20px calc(32px + env(safe-area-inset-bottom));
+  /* Generous vertical padding so the card breathes; safe-area-inset keeps the
+     bottom clear of the home-bar on iOS. */
+  padding: 48px 20px calc(64px + env(safe-area-inset-bottom));
+  padding-top: calc(48px + env(safe-area-inset-top));
   min-height: 100%;
 }
 
-/* "Back to homepage" link in the top-left of the auth screen. Lets anonymous
-   users return to /welcome.html without having to use the browser's back button. */
-.auth-home-link {
-  position: absolute;
-  top: calc(14px + env(safe-area-inset-top));
-  left: 16px;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 8px 14px 8px 10px;
-  font-size: 14px;
-  font-weight: 600;
-  color: #1d6083;
-  text-decoration: none;
-  border-radius: 100px;
-  background: rgba(255,255,255,0.6);
-  transition: background 0.15s;
-  z-index: 10;
-}
-.auth-home-link:hover { background: rgba(255,255,255,0.95); }
-.auth-home-link svg { flex-shrink: 0; }
-
-/* Logo header */
+/* Logo header: generous padding around the mark so it doesn't crowd the card. */
 .auth-header {
   text-align: center;
-  margin-bottom: 36px;
+  margin-bottom: 40px;
+  padding: 12px 0;
 }
 
 .auth-header-logo {
   width: 200px;
   height: auto;
   display: block;
-  margin: 0 auto 10px;
+  margin: 0 auto;
 }
 
 .auth-header-sub {

@@ -78,11 +78,13 @@ body {
   min-height: 100%;
 }
 
-/* Logo header: generous padding around the mark so it doesn't crowd the card. */
+/* Logo header: equal vertical breathing room on both sides so the mark sits
+   visually balanced between the top of the viewport and the auth card.
+   The 48px below the logo matches the 48px top padding on .auth-page. */
 .auth-header {
   text-align: center;
-  margin-bottom: 40px;
-  padding: 12px 0;
+  margin: 0 0 48px;
+  padding: 0;
 }
 
 .auth-header-logo {
@@ -107,6 +109,8 @@ body {
   padding: 36px 32px;
   width: 100%;
   max-width: 420px;
+  /* Clear breathing room beneath the card before the viewport edge. */
+  margin-bottom: 48px;
 }
 
 .auth-heading {

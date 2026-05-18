@@ -89,14 +89,6 @@
       padding: 32px 0 18px;
     }
 
-    .welcome-icon {
-      width: 80px;
-      height: 80px;
-      border-radius: 20px;
-      margin: 0 auto 18px;
-      display: block;
-    }
-
     .welcome-title {
       font-size: 34px;
       font-weight: 800;
@@ -200,18 +192,18 @@
 
     .btn-start {
       padding: 18px 52px;
-      background: var(--green);
+      background: linear-gradient(135deg, #8aa893, var(--green-dark));
       color: white;
       border: none;
       border-radius: 100px;
       font-size: 18px;
       font-weight: 700;
       cursor: pointer;
-      box-shadow: 0 4px 20px rgba(124,152,133,0.4);
+      box-shadow: 0 4px 20px rgba(124,152,133,0.4), inset 0 1px 0 rgba(255,255,255,0.18);
       transition: all 0.15s;
     }
 
-    .btn-start:hover { background: var(--green-dark); }
+    .btn-start:hover { background: linear-gradient(135deg, var(--green), #5e7a68); }
     .btn-start:active { transform: scale(0.97); }
 
     /* ─── Timer screen ─────────────────────────────────────────────────── */
@@ -312,7 +304,7 @@
 
     .btn-play {
       padding: 12px 36px;
-      background: var(--green);
+      background: linear-gradient(135deg, #8aa893, var(--green-dark));
       color: white;
       border: none;
       border-radius: 100px;
@@ -320,11 +312,11 @@
       font-weight: 700;
       cursor: pointer;
       min-width: 120px;
-      box-shadow: 0 2px 10px rgba(124,152,133,0.3);
+      box-shadow: 0 2px 10px rgba(124,152,133,0.3), inset 0 1px 0 rgba(255,255,255,0.18);
       transition: all 0.15s;
     }
 
-    .btn-play:hover { background: var(--green-dark); }
+    .btn-play:hover { background: linear-gradient(135deg, var(--green), #5e7a68); }
     .btn-play:active { transform: scale(0.97); }
     .btn-play:disabled { opacity: 0.5; cursor: not-allowed; }
 
@@ -346,18 +338,19 @@
 
     .btn-next-phase {
       padding: 12px 20px;
-      background: #86b9de;
+      background: linear-gradient(135deg, #9ec6e4, #6fa0c8);
       color: white;
-      border: 1.5px solid #86b9de;
+      border: 1.5px solid #78adcf;
       border-radius: 100px;
       font-size: 14px;
       font-weight: 600;
       cursor: pointer;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.22);
       transition: all 0.15s;
       white-space: nowrap;
     }
 
-    .btn-next-phase:hover { background: #78adcf; border-color: #78adcf; }
+    .btn-next-phase:hover { background: linear-gradient(135deg, #86b9de, #5d92bd); border-color: #5d92bd; }
     .btn-next-phase:active { transform: scale(0.97); }
 
     /* Timeline */
@@ -766,7 +759,6 @@
   </nav>
 
   <div class="welcome-hero">
-    <img src="/apple-touch-icon.png" class="welcome-icon" alt="">
     <h1 class="welcome-title">Breakout Room Timer</h1>
   </div>
 
@@ -923,6 +915,17 @@ const PHASES = [
 ];
 
 const COLORS  = { setup:'#6b9ec4', sharing:'#7C9885', feedback:'#d4956a', reflection:'#9b87b3', final:'#4dbbad' };
+// Gradient variant of each phase color — used for the large .timer-main
+// background so the colored band reads as a lit surface, not flat paint.
+// Flat COLORS are still used for the timeline strip (gradient is wasted on a
+// 6-px band) and the border under .timer-main.
+const COLOR_GRADIENTS = {
+  setup:      'linear-gradient(135deg, #7eb1d2, #5790b8)',
+  sharing:    'linear-gradient(135deg, #8aa893, #6c8674)',
+  feedback:   'linear-gradient(135deg, #dea27d, #c4825a)',
+  reflection: 'linear-gradient(135deg, #ad99c4, #8a76a2)',
+  final:      'linear-gradient(135deg, #5fc8bd, #41a89a)',
+};
 const GONGS   = new Set([120,900,1080,1200,1320,2100,2280,2400,2520,3300,3480,3600]);
 const WARNINGS= new Set([780,1980,3180]);
 
@@ -1204,7 +1207,7 @@ function render() {
   const phaseMinutes = Math.round((phase.end - phase.start) / 60);
 
   const timerMain = document.querySelector('.timer-main');
-  timerMain.style.background = color;
+  timerMain.style.background = COLOR_GRADIENTS[phase.type];
   timerMain.style.borderBottomColor = color;
   const badge = document.getElementById('phase-badge');
   badge.textContent = `${phase.name} - ${phaseMinutes} min`;

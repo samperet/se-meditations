@@ -1688,9 +1688,13 @@
        ═══════════════════════════════════════════════════════════════════════ */
 
     @media (max-width: 960px) {
+      /* Track the header height in a custom property so the hero can size
+         itself to exactly fill (viewport − header) on every breakpoint
+         without us repeating the math. */
+      :root { --header-h: 68px; }
       .nav { display: none; }
       .hamburger { display: flex; align-items: center; justify-content: center; }
-      .header-inner { height: 68px; }
+      .header-inner { height: var(--header-h); }
 
       /* Full-viewport mobile drawer. Uses 100dvh so it tracks the visible
          area when the URL bar shows/hides on iOS Safari, with 100vh as a
@@ -1703,12 +1707,13 @@
         padding: 88px var(--gutter) 32px;
       }
 
-      /* Hero fills the visible viewport on mobile so the imagery reads as
-         a true cover image rather than a thin band. */
+      /* Hero + header together = exactly one viewport height. Subtracting the
+         header keeps the bottom of the hero on the fold instead of overshooting
+         by the header's height. */
       .hero {
-        min-height: 100vh;
-        min-height: 100dvh;
-        padding: 96px var(--gutter) 64px;
+        min-height: calc(100vh - var(--header-h));
+        min-height: calc(100dvh - var(--header-h));
+        padding: 56px var(--gutter) 64px;
       }
       .pillars { grid-template-columns: 1fr; gap: 20px; }
       .modules { grid-template-columns: 1fr; }
@@ -1740,12 +1745,10 @@
     }
 
     @media (max-width: 560px) {
-      :root { --gutter: 20px; }
-      .header-inner { height: 60px; }
-      .mobile-nav { top: 60px; }
+      :root { --gutter: 20px; --header-h: 60px; }
       .brand-wordmark { font-size: 18px; }
       .brand-mark img { height: 32px; }
-      .hero { padding: 48px var(--gutter) 64px; }
+      .hero { padding: 40px var(--gutter) 56px; }
       .hero::before { top: 36px; }
       .hero::after { top: 72px; }
       .team-grid { grid-template-columns: 1fr; }
